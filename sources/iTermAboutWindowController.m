@@ -10,6 +10,8 @@
 
 #import "iTerm2SharedARC-Swift.h"
 #import "iTermLaunchExperienceController.h"
+#import "iTermPreferences.h"
+#import "NSAppearance+iTerm.h"
 #import "NSArray+iTerm.h"
 #import "NSMutableAttributedString+iTerm.h"
 #import "NSObject+iTerm.h"
@@ -83,6 +85,9 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
 
 - (void)awakeFromNib {
     [super awakeFromNib];
+    self.material = NSVisualEffectMaterialHUDWindow;
+    self.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+    self.state = NSVisualEffectStateActive;
     NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
     paragraphStyle.alignment = NSTextAlignmentCenter;
     _sponsorsHeading.selectable = YES;
@@ -177,7 +182,21 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
         // Force IBOutlets to be bound by creating window.
         [self window];
 
-        NSDictionary *versionAttributes = @{ NSForegroundColorAttributeName: [NSColor controlTextColor] };
+        self.window.backgroundColor = [NSColor clearColor];
+
+        iTermPreferencesTabStyle preferredStyle = [iTermPreferences intForKey:kPreferenceKeyTabStyle];
+        if (preferredStyle == TAB_STYLE_MINIMAL) {
+            if ([NSApp effectiveAppearance].it_isDark) {
+                self.window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameVibrantDark];
+            }
+        } else if (preferredStyle == TAB_STYLE_DARK || preferredStyle == TAB_STYLE_DARK_HIGH_CONTRAST) {
+            self.window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameVibrantDark];
+        }
+
+        NSDictionary *versionAttributes = @{
+            NSForegroundColorAttributeName: [NSColor secondaryLabelColor],
+            NSFontAttributeName: [NSFont systemFontOfSize:12 weight:NSFontWeightMedium]
+        };
         NSAttributedString *bullet = [[NSAttributedString alloc] initWithString:@" ∙ "
                                                                      attributes:versionAttributes];
         [_dynamicText setLinkTextAttributes:self.linkTextViewAttributes];
@@ -257,8 +276,8 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
     NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
     [style setMinimumLineHeight:18];
     [style setMaximumLineHeight:18];
-    [style setLineSpacing:3];
-    return @{ NSForegroundColorAttributeName: [NSColor controlTextColor],
+    [style setLineSpacing:2];
+    return @{ NSForegroundColorAttributeName: [NSColor secondaryLabelColor],
               NSParagraphStyleAttributeName: style
     };
 }
