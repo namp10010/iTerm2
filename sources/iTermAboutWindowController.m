@@ -81,7 +81,6 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
 
     NSArray<iTermSponsor *> *_sponsors;
     NSView *_sponsorWrapper;
-    NSView *_patronBackground;
 }
 
 - (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
@@ -119,17 +118,11 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
     const CGFloat kBottomMargin = 16;
     const CGFloat kScrollGap = 20;
     CGFloat scrollHeight = wrapperY - kScrollGap - kBottomMargin;
-    NSRect scrollFrame = NSMakeRect(_bottomAlignedScrollView.frame.origin.x,
+    NSRect scrollFrame = NSMakeRect(kWrapperInset,
                                     kBottomMargin,
-                                    _bottomAlignedScrollView.frame.size.width,
+                                    self.frame.size.width - kWrapperInset * 2,
                                     MAX(scrollHeight, 40));
     _bottomAlignedScrollView.frame = scrollFrame;
-
-    // Background sits exactly behind the scroll view so the overlay scroller
-    // renders on top of it rather than being clipped by masksToBounds.
-    if (_patronBackground) {
-        _patronBackground.frame = scrollFrame;
-    }
 }
 
 - (void)awakeFromNib {
@@ -195,23 +188,20 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
     self.material = NSVisualEffectMaterialHUDWindow;
     self.blendingMode = NSVisualEffectBlendingModeBehindWindow;
 
-    // Patron scroll: transparent so the background view shows through.
-    // A separate _patronBackground view provides the rounded tinted container —
-    // this avoids using masksToBounds on NSScrollView, which clips the overlay
-    // scroller and causes it to bleed outside the rounded corners.
+    // Patron scroll: single rounded box — background on the scroll view itself.
+    // masksToBounds clips content to the rounded rect; the overlay scroller auto-hides
+    // so its brief clipping at the corners is imperceptible.
+    // textContainerInset=12pt keeps text clear of the 10pt corner radius.
     _bottomAlignedScrollView.drawsBackground = NO;
     _bottomAlignedScrollView.contentView.drawsBackground = NO;
     _bottomAlignedScrollView.hasVerticalScroller = YES;
     _bottomAlignedScrollView.autohidesScrollers = YES;
-
-    _patronBackground = [[NSView alloc] initWithFrame:NSZeroRect];
-    _patronBackground.wantsLayer = YES;
-    _patronBackground.layer.cornerRadius = 10;
-    _patronBackground.layer.backgroundColor = dark
+    _bottomAlignedScrollView.wantsLayer = YES;
+    _bottomAlignedScrollView.layer.cornerRadius = 10;
+    _bottomAlignedScrollView.layer.masksToBounds = YES;
+    _bottomAlignedScrollView.layer.backgroundColor = dark
         ? [NSColor colorWithWhite:0 alpha:0.18].CGColor
         : [NSColor colorWithWhite:1 alpha:0.22].CGColor;
-    _patronBackground.autoresizingMask = NSViewNotSizable;
-    [self addSubview:_patronBackground positioned:NSWindowBelow relativeTo:nil];
 
     // Sponsor wrapper: subtle inner grouping behind heading + logos.
     // Frame is set dynamically by updateLayout.
