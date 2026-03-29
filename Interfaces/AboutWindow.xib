@@ -93,7 +93,7 @@
                         </scroller>
                     </scrollView>
                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fQo-xv-ggV">
-                        <rect key="frame" x="169" y="342" width="401" height="17"/>
+                        <rect key="frame" x="169" y="333" width="401" height="17"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="By George Nachman and Contributors" id="XAW-F5-RXa">
                             <font key="font" metaFont="system"/>
@@ -111,7 +111,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     </box>
                     <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" id="wvf-9G-H1W">
-                        <rect key="frame" x="22" y="223" width="546" height="20"/>
+                        <rect key="frame" x="22" y="207" width="546" height="20"/>
                         <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                         <clipView key="contentView" drawsBackground="NO" id="Y1k-vx-Mfh">
                             <rect key="frame" x="0.0" y="0.0" width="546" height="20"/>
@@ -156,32 +156,23 @@
                         </scroller>
                     </scrollView>
                     <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gnK-jE-EbY">
-                        <rect key="frame" x="157" y="174" width="200" height="48"/>
+                        <rect key="frame" x="119" y="150" width="200" height="48"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="coderabbitai" id="K26-aE-Qae"/>
                     </imageView>
                     <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="QLQ-ce-ZLX" userLabel="Whitebox">
-                        <rect key="frame" x="22" y="174" width="123" height="48"/>
+                        <rect key="frame" x="55" y="150" width="48" height="48"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
                             <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="r4H-cK-fWg">
                                 <rect key="frame" x="0.0" y="0.0" width="48" height="48"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="whitebox_logo" id="Gkx-JC-hcS"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <imageCell key="cell" refusesFirstResponder="YES" alignment="center" imageScaling="proportionallyDown" image="whitebox_logo" id="Gkx-JC-hcS"/>
                             </imageView>
-                            <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yn8-g8-sO4">
-                                <rect key="frame" x="56" y="12" width="62" height="16"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Whitebox" id="5go-AO-e2e">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="linkColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                         </subviews>
                     </customView>
                     <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8Uw-GU-xTT" userLabel="SerpApi">
-                        <rect key="frame" x="368" y="174" width="200" height="48"/>
+                        <rect key="frame" x="335" y="150" width="200" height="48"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" animates="YES" imageScaling="proportionallyDown" image="SerpApi" id="hZP-ku-ZlD"/>
                     </imageView>
@@ -192,7 +183,6 @@
                     <outlet property="_serpApi" destination="8Uw-GU-xTT" id="soS-ht-Xbn"/>
                     <outlet property="_sponsorsHeading" destination="XqE-kC-hnW" id="pQL-Be-gdx"/>
                     <outlet property="_whitebox" destination="QLQ-ce-ZLX" id="mCk-Eh-gWM"/>
-                    <outlet property="_whiteboxText" destination="Yn8-g8-sO4" id="i36-xm-S0G"/>
                 </connections>
             </view>
             <point key="canvasLocation" x="358" y="551.5"/>
@@ -202,6 +192,6 @@
         <image name="NSApplicationIcon" width="32" height="32"/>
         <image name="SerpApi" width="395" height="97"/>
         <image name="coderabbitai" width="214" height="48"/>
-        <image name="whitebox_logo" width="22.079999923706055" height="22.079999923706055"/>
+        <image name="whitebox_logo" width="48" height="48"/>
     </resources>
 </document>

@@ -9,17 +9,22 @@
 #import "iTermAboutWindowController.h"
 
 #import "iTerm2SharedARC-Swift.h"
+#import "iTermController.h"
 #import "iTermLaunchExperienceController.h"
 #import "iTermPreferences.h"
 #import "NSAppearance+iTerm.h"
 #import "NSArray+iTerm.h"
+#import "NSColor+iTerm.h"
 #import "NSMutableAttributedString+iTerm.h"
 #import "NSObject+iTerm.h"
 #import "NSStringITerm.h"
+#import "PTYWindow.h"
+#import "PseudoTerminal.h"
 
 static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-new/";
 
 @interface iTermAboutWindowContentView : NSVisualEffectView
+- (void)configureForDark:(BOOL)dark;
 @end
 
 @interface iTermSponsor: NSObject
@@ -45,8 +50,11 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
                                                        userInfo:nil];
     [view addTrackingArea:sponsor.trackingArea];
     if (textField) {
-        NSDictionary *underlineAttribute = @{NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle)};
-        NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:[textField stringValue] attributes:underlineAttribute];
+        NSDictionary *attrs = @{
+            NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle),
+            NSForegroundColorAttributeName: [NSColor secondaryLabelColor]
+        };
+        NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:[textField stringValue] attributes:attrs];
         [textField setAttributedStringValue:attributedString];
     }
     return sponsor;
@@ -67,20 +75,61 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
     IBOutlet NSTextView *_sponsorsHeading;
 
     IBOutlet NSView *_whitebox;
-    IBOutlet NSTextField *_whiteboxText;
 
     IBOutlet NSView *_codeRabbit;
     IBOutlet NSView *_serpApi;
 
     NSArray<iTermSponsor *> *_sponsors;
+    NSView *_sponsorWrapper;
+    NSView *_patronBackground;
 }
 
 - (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
-    NSRect frame = _bottomAlignedScrollView.frame;
     [super resizeSubviewsWithOldSize:oldSize];
-    CGFloat topMargin = oldSize.height - NSMaxY(frame);
-    frame.origin.y = self.frame.size.height - topMargin - frame.size.height;
-    _bottomAlignedScrollView.frame = frame;
+    [self updateLayout];
+}
+
+- (void)updateLayout {
+    if (!_sponsorWrapper) {
+        return;
+    }
+
+    // Sponsor logos are top-pinned (NSViewMinYMargin) in the XIB.
+    // Their Y origin moves with the window height. Find the bottom-most Y origin.
+    CGFloat sponsorLogoMinY = MIN(MIN(_whitebox.frame.origin.y, _codeRabbit.frame.origin.y),
+                                  _serpApi.frame.origin.y);
+    CGFloat headingTop = NSMaxY(_sponsorsHeading.frame);
+
+    // Guard: logos and heading haven't been positioned yet (frame.origin is zero).
+    if (sponsorLogoMinY == 0 || headingTop == 0) {
+        return;
+    }
+
+    // Sponsor wrapper: encloses logos + heading with generous padding on each side.
+    const CGFloat kWrapperInset = 16;
+    const CGFloat kWrapperGap = 12;
+    CGFloat wrapperY = sponsorLogoMinY - kWrapperGap;
+    CGFloat wrapperHeight = (headingTop + kWrapperGap) - wrapperY;
+    _sponsorWrapper.frame = NSMakeRect(kWrapperInset,
+                                       wrapperY,
+                                       self.frame.size.width - kWrapperInset * 2,
+                                       wrapperHeight);
+
+    // Patron scroll view: bottom-pinned at kBottomMargin, fills up to the sponsor wrapper.
+    const CGFloat kBottomMargin = 16;
+    const CGFloat kScrollGap = 20;
+    CGFloat scrollHeight = wrapperY - kScrollGap - kBottomMargin;
+    NSRect scrollFrame = NSMakeRect(_bottomAlignedScrollView.frame.origin.x,
+                                    kBottomMargin,
+                                    _bottomAlignedScrollView.frame.size.width,
+                                    MAX(scrollHeight, 40));
+    _bottomAlignedScrollView.frame = scrollFrame;
+
+    // Background sits exactly behind the scroll view so the overlay scroller
+    // renders on top of it rather than being clipped by masksToBounds.
+    if (_patronBackground) {
+        _patronBackground.frame = scrollFrame;
+    }
 }
 
 - (void)awakeFromNib {
@@ -88,6 +137,9 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
     self.material = NSVisualEffectMaterialHUDWindow;
     self.blendingMode = NSVisualEffectBlendingModeBehindWindow;
     self.state = NSVisualEffectStateActive;
+
+    _bottomAlignedScrollView.drawsBackground = NO;
+
     NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
     paragraphStyle.alignment = NSTextAlignmentCenter;
     _sponsorsHeading.selectable = YES;
@@ -96,8 +148,37 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
                                                                                               font:_sponsorsHeading.font
                                                                                     paragraphStyle:paragraphStyle]];
 
+    // HTML parsing injects explicit blue NSForegroundColorAttributeName on link ranges.
+    // linkTextAttributes can't override stored attributes in a non-editable NSTextView,
+    // so we patch the storage directly.
+    NSDictionary *subtleLinkAttributes = @{
+        NSForegroundColorAttributeName: [NSColor secondaryLabelColor],
+        NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle),
+        NSCursorAttributeName: [NSCursor pointingHandCursor]
+    };
+    _sponsorsHeading.linkTextAttributes = subtleLinkAttributes;
+    [_sponsorsHeading.textStorage enumerateAttribute:NSLinkAttributeName
+                                             inRange:NSMakeRange(0, _sponsorsHeading.textStorage.length)
+                                             options:0
+                                          usingBlock:^(id value, NSRange range, BOOL *stop) {
+        if (value) {
+            [_sponsorsHeading.textStorage addAttributes:subtleLinkAttributes range:range];
+        }
+    }];
+
+    // The SVG is a white+orange logo designed for dark backgrounds.
+    // Load it programmatically so NSImage's bundle lookup finds it by path,
+    // bypassing the XIB image-name resolution which is unreliable for SVG.
+    NSString *svgPath = [[NSBundle mainBundle] pathForResource:@"coderabbitai" ofType:@"svg"];
+    if (svgPath) {
+        NSImage *svgLogo = [[NSImage alloc] initWithContentsOfFile:svgPath];
+        if (svgLogo) {
+            [(NSImageView *)_codeRabbit setImage:svgLogo];
+        }
+    }
+
     _sponsors = @[ [iTermSponsor sponsorWithView:_whitebox
-                                       textField:_whiteboxText
+                                       textField:nil
                                        container:self
                                              url:@"https://whitebox.so/?utm_source=iTerm2"],
                    [iTermSponsor sponsorWithView:_codeRabbit
@@ -108,6 +189,45 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
                                        textField:nil
                                        container:self
                                              url:@"https://serpapi.com/?utm_source=iterm"]];
+}
+
+- (void)configureForDark:(BOOL)dark {
+    self.material = NSVisualEffectMaterialHUDWindow;
+    self.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+
+    // Patron scroll: transparent so the background view shows through.
+    // A separate _patronBackground view provides the rounded tinted container —
+    // this avoids using masksToBounds on NSScrollView, which clips the overlay
+    // scroller and causes it to bleed outside the rounded corners.
+    _bottomAlignedScrollView.drawsBackground = NO;
+    _bottomAlignedScrollView.contentView.drawsBackground = NO;
+    _bottomAlignedScrollView.hasVerticalScroller = YES;
+    _bottomAlignedScrollView.autohidesScrollers = YES;
+
+    _patronBackground = [[NSView alloc] initWithFrame:NSZeroRect];
+    _patronBackground.wantsLayer = YES;
+    _patronBackground.layer.cornerRadius = 10;
+    _patronBackground.layer.backgroundColor = dark
+        ? [NSColor colorWithWhite:0 alpha:0.18].CGColor
+        : [NSColor colorWithWhite:1 alpha:0.22].CGColor;
+    _patronBackground.autoresizingMask = NSViewNotSizable;
+    [self addSubview:_patronBackground positioned:NSWindowBelow relativeTo:nil];
+
+    // Sponsor wrapper: subtle inner grouping behind heading + logos.
+    // Frame is set dynamically by updateLayout.
+    const CGFloat kWrapperInset = 16;
+    _sponsorWrapper = [[NSView alloc] initWithFrame:NSMakeRect(kWrapperInset, 0,
+                                                                self.frame.size.width - kWrapperInset * 2,
+                                                                80)];
+    _sponsorWrapper.wantsLayer = YES;
+    _sponsorWrapper.layer.cornerRadius = 8;
+    _sponsorWrapper.layer.backgroundColor = dark
+        ? [NSColor colorWithWhite:1 alpha:0.07].CGColor
+        : [NSColor colorWithWhite:0 alpha:0.05].CGColor;
+    _sponsorWrapper.autoresizingMask = NSViewNotSizable;
+    [self addSubview:_sponsorWrapper positioned:NSWindowBelow relativeTo:nil];
+
+    [self updateLayout];
 }
 
 
@@ -163,7 +283,7 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
     if (self) {
         NSDictionary *myDict = [[NSBundle bundleForClass:[self class]] infoDictionary];
         NSString *const versionNumber = myDict[(NSString *)kCFBundleVersionKey];
-        NSString *versionString = [NSString stringWithFormat: @"Build %@\n\n", versionNumber];
+        NSString *versionString = [NSString stringWithFormat: @"Build %@\n", versionNumber];
         NSAttributedString *whatsNew = nil;
         if ([versionNumber hasPrefix:@"3.6."] || [versionString isEqualToString:@"unknown"]) {
             whatsNew = [self attributedStringWithLinkToURL:iTermAboutWindowControllerWhatsNewURLString
@@ -182,20 +302,40 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
         // Force IBOutlets to be bound by creating window.
         [self window];
 
-        self.window.backgroundColor = [NSColor clearColor];
-
         iTermPreferencesTabStyle preferredStyle = [iTermPreferences intForKey:kPreferenceKeyTabStyle];
-        if (preferredStyle == TAB_STYLE_MINIMAL) {
-            if ([NSApp effectiveAppearance].it_isDark) {
-                self.window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameVibrantDark];
-            }
-        } else if (preferredStyle == TAB_STYLE_DARK || preferredStyle == TAB_STYLE_DARK_HIGH_CONTRAST) {
+        BOOL isDark = NO;
+        if (preferredStyle == TAB_STYLE_DARK || preferredStyle == TAB_STYLE_DARK_HIGH_CONTRAST) {
+            isDark = YES;
+        } else if (preferredStyle == TAB_STYLE_MINIMAL) {
+            PseudoTerminal *terminal = [[iTermController sharedInstance] currentTerminal];
+            NSColor *bgColor = [terminal.ptyWindow it_terminalWindowDecorationBackgroundColor];
+            isDark = bgColor.perceivedBrightness < 0.5;
+        }
+
+        // Always transparent — frosted glass over the desktop.
+        // VibrantDark makes the HUDWindow material render as a dark tint; default (nil) renders light.
+        self.window.backgroundColor = [NSColor clearColor];
+        if (isDark) {
             self.window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameVibrantDark];
         }
 
+        // Resize to 75% of the screen height before configuring the content view,
+        // so configureForDark: sees the final window dimensions.
+        NSScreen *screen = [NSScreen mainScreen] ?: self.window.screen;
+        if (screen) {
+            CGFloat targetHeight = screen.visibleFrame.size.height * 0.75;
+            NSRect windowFrame = self.window.frame;
+            CGFloat delta = targetHeight - windowFrame.size.height;
+            windowFrame.size.height = targetHeight;
+            windowFrame.origin.y -= delta;
+            [self.window setFrame:windowFrame display:NO];
+        }
+
+        [(iTermAboutWindowContentView *)self.window.contentView configureForDark:isDark];
+
         NSDictionary *versionAttributes = @{
             NSForegroundColorAttributeName: [NSColor secondaryLabelColor],
-            NSFontAttributeName: [NSFont systemFontOfSize:12 weight:NSFontWeightMedium]
+            NSFontAttributeName: [NSFont systemFontOfSize:13 weight:NSFontWeightMedium]
         };
         NSAttributedString *bullet = [[NSAttributedString alloc] initWithString:@" ∙ "
                                                                      attributes:versionAttributes];
@@ -234,34 +374,20 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
 
 - (NSDictionary *)linkTextViewAttributes {
     return @{ NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle),
-              NSForegroundColorAttributeName: [NSColor linkColor],
+              NSForegroundColorAttributeName: [NSColor secondaryLabelColor],
               NSCursorAttributeName: [NSCursor pointingHandCursor] };
 }
 
 - (void)setPatronsString:(NSAttributedString *)patronsAttributedString animate:(BOOL)animate {
-    NSSize minSize = _patronsTextView.minSize;
-    minSize.height = 1;
-    _patronsTextView.minSize = minSize;
-
     [_patronsTextView setLinkTextAttributes:self.linkTextViewAttributes];
-    [[_patronsTextView textStorage] deleteCharactersInRange:NSMakeRange(0, [[_patronsTextView textStorage] length])];
-    [[_patronsTextView textStorage] appendAttributedString:patronsAttributedString];
+    [[_patronsTextView textStorage] setAttributedString:patronsAttributedString];
     [_patronsTextView setAlignment:NSTextAlignmentLeft
                          range:NSMakeRange(0, [[_patronsTextView textStorage] length])];
     _patronsTextView.horizontallyResizable = NO;
-
-    NSRect rect = _patronsTextView.enclosingScrollView.frame;
-    [_patronsTextView sizeToFit];
-    const CGFloat desiredHeight = [_patronsTextView.textStorage heightForWidth:rect.size.width];
-    CGFloat diff = desiredHeight - rect.size.height;
-    rect.size.height = desiredHeight;
-    rect.origin.y -= diff;
-    _patronsTextView.enclosingScrollView.frame = rect;
-    
-    rect = self.window.frame;
-    rect.size.height += diff;
-    rect.origin.y -= diff;
-    [self.window setFrame:rect display:YES animate:animate];
+    // Re-apply after every content change: setAlignment: triggers a layout pass
+    // that can restore the text view's default insets.
+    _patronsTextView.textContainerInset = NSMakeSize(12, 0);
+    _patronsTextView.textContainer.lineFragmentPadding = 0;
 }
 
 - (NSAttributedString *)defaultPatronsString {
@@ -274,11 +400,10 @@ static NSString *iTermAboutWindowControllerWhatsNewURLString = @"iterm2://whats-
 
 - (NSDictionary *)attributes {
     NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
-    [style setMinimumLineHeight:18];
-    [style setMaximumLineHeight:18];
-    [style setLineSpacing:2];
-    return @{ NSForegroundColorAttributeName: [NSColor secondaryLabelColor],
-              NSParagraphStyleAttributeName: style
+    [style setLineSpacing:5];
+    return @{ NSForegroundColorAttributeName: [NSColor labelColor],
+              NSParagraphStyleAttributeName: style,
+              NSFontAttributeName: [NSFont systemFontOfSize:13]
     };
 }
 

@@ -1,6 +1,6 @@
 # bash completion for img2sixel
 
-command -v img2sixel &>/dev/null &&
+have img2sixel &&
 _img2sixel()
 {
     local cur prev
