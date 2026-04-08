@@ -71,3 +71,29 @@ emoji-data.txt
 # Unicode data cache for generate_nscharacterset.py
 tools/.unicode_cache/
 emoji-sequences.txt
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+.gsd-id
+.bg-shell/
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+__pycache__/
+.venv/
+venv/
+target/
+vendor/
+*.log
+coverage/
+.cache/
