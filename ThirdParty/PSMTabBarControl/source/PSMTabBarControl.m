@@ -144,7 +144,9 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 
 @implementation PSMTabBarControl {
     // control basics
-    NSMutableArray<PSMTabBarCell *> *_cells; // the cells that draw the tabs
+    NSMutableArray<PSMTabBarCell *> *_cells; // the cells that draw the tabs (1:1 with tabViewItems)
+    NSMutableArray<PSMTabBarCell *> *_displayCells; // cells + group headers for rendering
+    NSMutableDictionary<NSString *, PSMTabBarCell *> *_groupHeaderCellCache; // keyed by group identifier
     NSButton *_overflowPopUpButton; // for too many tabs
     PSMRolloverButton *_addTabButton;
 
@@ -224,6 +226,8 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     if (self) {
         // Initialization
         _cells = [[NSMutableArray alloc] initWithCapacity:10];
+        _displayCells = [[NSMutableArray alloc] initWithCapacity:10];
+        _groupHeaderCellCache = [[NSMutableDictionary alloc] init];
         _animationTimer = nil;
         const CGFloat defaultHeight = 24;
         _height = defaultHeight;
@@ -425,17 +429,17 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         ILog(@"Skip sanity check during drag from callsite %@", callsite);
         return;
     }
-    if (self.tabView.tabViewItems.count != self.cells.count) {
+    if (self.tabView.tabViewItems.count != _cells.count) {
         [self sanityCheckFailedWithCallsite:callsite reason:@"count mismatch"];
     } else {
-        for (NSInteger i = 0; i < self.cells.count; i++) {
+        for (NSInteger i = 0; i < _cells.count; i++) {
             NSTabViewItem *tabViewItem = self.tabView.tabViewItems[i];
-            PSMTabBarCell *cell = self.cells[i];
+            PSMTabBarCell *cell = _cells[i];
             if (cell.representedObject != tabViewItem) {
                 [self sanityCheckFailedWithCallsite:callsite reason:@"cells[i].representedObject != tabView.tabViewItems[i].representedObject"];
             }
         }
-        DLog(@"Sanity check passed. cells=%@. tabView.tabViewITems=%@", self.cells, self.tabView.tabViewItems);
+        DLog(@"Sanity check passed. cells=%@. tabView.tabViewITems=%@", _cells, self.tabView.tabViewItems);
     }
 }
 
@@ -444,6 +448,20 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 
 - (NSMutableArray *)cells
 {
+    if (_displayCells.count > 0) {
+        return _displayCells;
+    }
+    return _cells;
+}
+
+- (NSArray<PSMTabBarCell *> *)displayCells {
+    if (_displayCells.count > 0) {
+        return _displayCells;
+    }
+    return _cells;
+}
+
+- (NSMutableArray<PSMTabBarCell *> *)tabCells {
     return _cells;
 }
 
@@ -1139,6 +1157,83 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     }
 }
 
+- (void)rebuildDisplayCells {
+    [_displayCells removeAllObjects];
+    id currentGroup = nil;
+    BOOL currentGroupCollapsed = NO;
+    for (PSMTabBarCell *cell in _cells) {
+        id group = nil;
+        if ([_delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
+            group = [_delegate tabGroupForTabViewItem:cell.representedObject];
+        }
+        if (group != nil && group != currentGroup) {
+            // Entering a new group — insert a header cell.
+            currentGroup = group;
+            currentGroupCollapsed = NO;
+            if ([_delegate respondsToSelector:@selector(isGroupCollapsed:)]) {
+                currentGroupCollapsed = [_delegate isGroupCollapsed:group];
+            }
+            NSString *groupId = [group identifier];
+            PSMTabBarCell *header = _groupHeaderCellCache[groupId];
+            if (!header) {
+                header = [[PSMTabBarCell alloc] initGroupHeaderWithFrame:NSZeroRect
+                                                                   name:nil
+                                                                  color:nil
+                                                              collapsed:NO
+                                                            memberCount:0
+                                                          inControlView:self];
+                if (groupId) {
+                    _groupHeaderCellCache[groupId] = header;
+                }
+            }
+            // Update header state from delegate.
+            header.groupIdentifier = group;
+            header.groupCollapsed = currentGroupCollapsed;
+            if ([_delegate respondsToSelector:@selector(nameForGroup:)]) {
+                header.groupName = [_delegate nameForGroup:group];
+            }
+            if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
+                header.groupColor = [_delegate colorForGroup:group];
+            }
+            if ([_delegate respondsToSelector:@selector(memberCountForGroup:)]) {
+                header.groupMemberCount = [_delegate memberCountForGroup:group];
+            }
+            [_displayCells addObject:header];
+        } else if (group == nil) {
+            currentGroup = nil;
+            currentGroupCollapsed = NO;
+        }
+        // Skip collapsed group members.
+        if (currentGroupCollapsed) {
+            continue;
+        }
+        // Set group colour on member cells for rendering.
+        if (group != nil) {
+            if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
+                cell.groupColor = [_delegate colorForGroup:group];
+            }
+        } else {
+            cell.groupColor = nil;
+        }
+        [_displayCells addObject:cell];
+    }
+    // Prune stale header cache entries.
+    NSMutableSet *activeGroupIds = [NSMutableSet set];
+    for (PSMTabBarCell *cell in _displayCells) {
+        if (cell.isGroupHeader) {
+            NSString *gid = [cell.groupIdentifier identifier];
+            if (gid) {
+                [activeGroupIds addObject:gid];
+            }
+        }
+    }
+    for (NSString *key in [_groupHeaderCellCache allKeys]) {
+        if (![activeGroupIds containsObject:key]) {
+            [_groupHeaderCellCache removeObjectForKey:key];
+        }
+    }
+}
+
 - (void)reallyUpdate:(BOOL)animate {
     [self _removeCellTrackingRects];
 
@@ -1156,6 +1251,9 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         [cell updateHighlight];
         [cell updateIndicators];
     }
+
+    // Rebuild the display cells list (inserts group headers, skips collapsed members).
+    [self rebuildDisplayCells];
 
     // Calculate number of cells to fit in the control and cell widths.
     const NSInteger cellCount = [_cells count];
@@ -1178,18 +1276,20 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                              widthsWithOverflow:[self cellWidthsForHorizontalArrangementWithOverflow:YES]];
         }
     } else {
-        // Vertical orientation
+        // Vertical orientation — use _displayCells so group headers get origins too.
         CGFloat currentOrigin = [[self style] topMarginForTabBarControl];
         NSRect cellRect = [self genericCellRectWithOverflow:(NO || _showAddTabButton)];
-        NSMutableArray *newOrigins = [NSMutableArray arrayWithCapacity:cellCount];
+        const CGFloat groupHeaderHeight = 22.0;
+        NSMutableArray *newOrigins = [NSMutableArray arrayWithCapacity:_displayCells.count];
 
-        for (int i = 0; i < cellCount; ++i) {
-            if (currentOrigin + cellRect.size.height <= [self frame].size.height) {
+        for (int i = 0; i < (int)_displayCells.count; ++i) {
+            PSMTabBarCell *dc = _displayCells[i];
+            const CGFloat height = dc.isGroupHeader ? groupHeaderHeight : cellRect.size.height;
+            if (currentOrigin + height <= [self frame].size.height) {
                 [newOrigins addObject:[NSNumber numberWithFloat:currentOrigin]];
-                currentOrigin += cellRect.size.height;
+                currentOrigin += height;
             } else {
-                // Out of room, the remaining unpinned tabs go into overflow.
-                if ([newOrigins count] > 0 && [self frame].size.height - currentOrigin < cellRect.size.height) {
+                if ([newOrigins count] > 0 && [self frame].size.height - currentOrigin < height) {
                     [newOrigins removeLastObject];
                 }
                 break;
@@ -1398,22 +1498,27 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     }
 }
 
+
 - (void)removeCell:(PSMTabBarCell *)cell {
     [cell removeCloseButtonTrackingRectFrom:self];
     [cell removeCellTrackingRectFrom:self];
-    [[self cells] removeObject:cell];
+    [_cells removeObject:cell];
 }
 
 - (void)_removeCellTrackingRects {
-    // size all cells appropriately and create tracking rects
-    // nuke old tracking rects
+    // Remove tracking rects from all real cells.
     int i, cellCount = [_cells count];
-
     for (i = 0; i < cellCount; i++) {
         id cell = [_cells objectAtIndex:i];
         [[NSNotificationCenter defaultCenter] removeObserver:cell];
         [cell removeCloseButtonTrackingRectFrom:self];
         [cell removeCellTrackingRectFrom:self];
+    }
+    // Also remove tracking rects from group header cells in displayCells.
+    for (PSMTabBarCell *cell in _displayCells) {
+        if (cell.isGroupHeader) {
+            [cell removeCellTrackingRectFrom:self];
+        }
     }
 
     //remove all tooltip rects
@@ -1477,7 +1582,8 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                    widthsWithOverflow:(NSArray *)widthsWithOverflow {
     // Set up overflow menu.
     NSArray *newValues;
-    if (_showAddTabButton || regularWidths.count < _cells.count) {
+    const NSUInteger displayCount = _displayCells.count > 0 ? _displayCells.count : _cells.count;
+    if (_showAddTabButton || regularWidths.count < displayCount) {
         newValues = widthsWithOverflow;
     } else {
         newValues = regularWidths;
@@ -1510,92 +1616,114 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 }
 
 - (NSMenu *)_setupCells:(NSArray *)newValues {
-    const int cellCount = [_cells count];
-    const int numberOfVisibleCells = [newValues count];
+    // Use _displayCells (includes group headers) if available, otherwise fall back to _cells.
+    NSArray<PSMTabBarCell *> *sourceCells = _displayCells.count > 0 ? _displayCells : _cells;
+    const int cellCount = (int)sourceCells.count;
+    const int numberOfVisibleCells = (int)[newValues count];
+    const CGFloat groupHeaderHeight = 22.0;
     NSRect cellRect = [self genericCellRectWithOverflow:(_showAddTabButton || cellCount > numberOfVisibleCells)];
     const NSRect generic = cellRect;
     NSMenu *overflowMenu = nil;
     const CGFloat intercellSpacing = _style.intercellSpacing;
 
-    // Set up cells with frames and rects
+    // Count only real (non-header) cells for tab position state.
+    NSInteger realCellCount = 0;
+    for (PSMTabBarCell *c in sourceCells) {
+        if (!c.isGroupHeader) realCellCount++;
+    }
+    NSInteger realCellIndex = 0;  // index among real cells only
+
+    // Track previous real cell for tab-state adjacency logic.
+    PSMTabBarCell *prevRealCell = nil;
+
     for (int i = 0; i < cellCount; i++) {
-        PSMTabBarCell *cell = [_cells objectAtIndex:i];
+        PSMTabBarCell *cell = sourceCells[i];
         int tabState = 0;
+
         if (i < numberOfVisibleCells) {
-            // set cell frame
+            // Set cell frame.
             if ([self orientation] == PSMTabBarHorizontalOrientation) {
                 cellRect.size.width = [[newValues objectAtIndex:i] floatValue];
+                cellRect = [_style adjustedCellRect:cellRect generic:generic];
             } else {
                 cellRect.size.width = [self frame].size.width;
                 cellRect.origin.y = [[newValues objectAtIndex:i] floatValue];
                 cellRect.origin.x = 0;
+                if (cell.isGroupHeader) {
+                    cellRect.size.height = groupHeaderHeight;
+                } else {
+                    cellRect.size.height = generic.size.height;
+                }
+                cellRect = [_style adjustedCellRect:cellRect generic:generic];
             }
-            cellRect = [_style adjustedCellRect:cellRect generic:generic];
             [cell setFrame:cellRect];
 
-            // close button tracking rect
+            if (cell.isGroupHeader) {
+                // Group headers get a click tracking rect but no close button or tab states.
+                [cell removeCellTrackingRectFrom:self];
+                [cell setCellTrackingRect:cellRect userData:nil assumeInside:NO view:self];
+                [cell setEnabled:YES];
+                // Advance x for horizontal layout.
+                if ([self orientation] == PSMTabBarHorizontalOrientation) {
+                    cellRect.origin.x += [[newValues objectAtIndex:i] floatValue] + intercellSpacing;
+                }
+                continue;
+            }
+
+            // --- Real tab cell logic below ---
+
+            // Close button tracking rect.
             if ([cell hasCloseButton] && !cell.isPinned &&
                 ([[cell representedObject] isEqualTo:[_tabView selectedTabViewItem]] ||
                  [self allowsBackgroundTabClosing])) {
-                    NSPoint mousePoint =
+                NSPoint mousePoint =
                     [self convertPoint:[[self window] pointFromScreenCoords:[NSEvent mouseLocation]]
                               fromView:nil];
-                    NSRect closeRect = [cell closeButtonRectForFrame:cellRect];
-
-                    // Add the tracking rect for the close button highlight.
-                    [cell removeCloseButtonTrackingRectFrom:self];
-                    [cell setCloseButtonTrackingRect:closeRect userData:nil assumeInside:NO view:self];
-
-                    // highlight the close button if the currently selected tab has the mouse over it
-                    // this will happen if the user clicks a close button in a tab and all the tabs are
-                    // rearranged
-                    if ([[cell representedObject] isEqualTo:[_tabView selectedTabViewItem]] &&
-                        [[NSApp currentEvent] type] != NSEventTypeLeftMouseDown &&
-                        NSMouseInRect(mousePoint, closeRect, [self isFlipped])) {
-                        [cell setCloseButtonOver:YES];
-                    }
-                } else {
-                    [cell setCloseButtonOver:NO];
+                NSRect closeRect = [cell closeButtonRectForFrame:cellRect];
+                [cell removeCloseButtonTrackingRectFrom:self];
+                [cell setCloseButtonTrackingRect:closeRect userData:nil assumeInside:NO view:self];
+                if ([[cell representedObject] isEqualTo:[_tabView selectedTabViewItem]] &&
+                    [[NSApp currentEvent] type] != NSEventTypeLeftMouseDown &&
+                    NSMouseInRect(mousePoint, closeRect, [self isFlipped])) {
+                    [cell setCloseButtonOver:YES];
                 }
+            } else {
+                [cell setCloseButtonOver:NO];
+            }
 
-            // Add entire-tab tracking rect.
+            // Entire-tab tracking rect.
             [cell removeCellTrackingRectFrom:self];
             [cell setCellTrackingRect:cellRect userData:nil assumeInside:NO view:self];
             [cell setEnabled:YES];
 
-            //add the tooltip tracking rect
+            // Tooltip tracking rect.
             [self addToolTipRect:cellRect owner:self userData:nil];
 
-            // selected? set tab states...
+            // Selected? Set tab states.
             if ([[cell representedObject] isEqualTo:[_tabView selectedTabViewItem]]) {
                 [cell setState:NSControlStateValueOn];
                 tabState |= PSMTab_SelectedMask;
-                // previous cell
-                if (i > 0) {
-                    [[_cells objectAtIndex:i-1] setTabState:([(PSMTabBarCell *)[_cells objectAtIndex:i-1] tabState] | PSMTab_RightIsSelectedMask)];
+                if (prevRealCell) {
+                    [prevRealCell setTabState:[prevRealCell tabState] | PSMTab_RightIsSelectedMask];
                 }
-                // next cell - see below
             } else {
                 [cell setState:NSControlStateValueOff];
-                // see if prev cell was selected
-                if (i > 0) {
-                    if ([[_cells objectAtIndex:i-1] state] == NSControlStateValueOn){
-                        tabState |= PSMTab_LeftIsSelectedMask;
-                    }
+                if (prevRealCell && [prevRealCell state] == NSControlStateValueOn) {
+                    tabState |= PSMTab_LeftIsSelectedMask;
                 }
             }
-            // more tab states
-            if (cellCount == 1) {
+            // Position tab states.
+            if (realCellCount == 1) {
                 tabState |= PSMTab_PositionLeftMask | PSMTab_PositionRightMask | PSMTab_PositionSingleMask;
-            } else if (i == 0) {
+            } else if (realCellIndex == 0) {
                 tabState |= PSMTab_PositionLeftMask;
-            } else if (i-1 == cellCount) {
+            } else if (realCellIndex == realCellCount - 1) {
                 tabState |= PSMTab_PositionRightMask;
             }
             [cell setTabState:tabState];
             [cell setIsInOverflowMenu:NO];
 
-            // indicator
+            // Indicator.
             if (![[cell indicator] isHidden] && !_hideIndicators) {
                 [[cell indicator] setFrame:[cell indicatorRectForFrame:cellRect]];
                 if (![[self subviews] containsObject:[cell indicator]]) {
@@ -1604,18 +1732,25 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                 }
             }
 
-            // next...
-            cellRect.origin.x += [[newValues objectAtIndex:i] floatValue] + intercellSpacing;
+            prevRealCell = cell;
+            realCellIndex++;
+
+            // Advance x for horizontal layout.
+            if ([self orientation] == PSMTabBarHorizontalOrientation) {
+                cellRect.origin.x += [[newValues objectAtIndex:i] floatValue] + intercellSpacing;
+            }
 
         } else {
-            // set up menu items
+            // Overflow: only real cells go into the overflow menu; skip group headers.
+            if (cell.isGroupHeader) continue;
+
             NSMenuItem *menuItem;
             if (overflowMenu == nil) {
                 overflowMenu = [[[NSMenu alloc] initWithTitle:@"TITLE"] autorelease];
                 if (@available(macOS 26, *)) {
-                    // It's not a pulldown menu in 26
+                    // Not a pulldown menu in 26.
                 } else {
-                    [overflowMenu insertItemWithTitle:@"FIRST" action:nil keyEquivalent:@"" atIndex:0]; // Because the overflowPupUpButton is a pull down menu
+                    [overflowMenu insertItemWithTitle:@"FIRST" action:nil keyEquivalent:@"" atIndex:0];
                 }
             }
             NSString *title = [[cell attributedStringValue] string] ?: @"";
@@ -1627,15 +1762,12 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             if ([[cell representedObject] isEqualTo:[_tabView selectedTabViewItem]]) {
                 [menuItem setState:NSControlStateValueOn];
             }
-
             if ([cell hasIcon]) {
                 [menuItem setImage:(NSImage *)[(id)[[cell representedObject] identifier] icon]];
             }
-
             if ([cell count] > 0) {
                 [menuItem setTitle:[[menuItem title] stringByAppendingFormat:@" (%d)", [cell count]]];
             }
-
             [overflowMenu addItem:menuItem];
             [menuItem release];
         }
@@ -1734,7 +1866,7 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             [cell setCloseButtonOver:NO];
             [cell setCloseButtonPressed:YES];
             _closeClicked = YES;
-        } else {
+        } else if (!cell.isGroupHeader) {
             [cell setCloseButtonPressed:NO];
             if ([theEvent clickCount] == 1) {
                 const NSEventModifierFlags mask = NSEventModifierFlagOption;
@@ -1817,6 +1949,11 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         float dy = fabs(currentPoint.y - trackingStartPoint.y);
         float distance = sqrt(dx * dx + dy * dy);
 
+        if (cell.isGroupHeader) {
+            // Group header cells cannot be dragged.
+            return;
+        }
+
         if (distance >= self.minimumTabDragDistance && !_didDrag && ![[PSMTabDragAssistant sharedDragAssistant] isDragging] &&
                 [[self delegate] respondsToSelector:@selector(tabView:shouldDragTabViewItem:fromTabBar:)] &&
                 [[self delegate] tabView:_tabView shouldDragTabViewItem:[cell representedObject] fromTabBar:self]) {
@@ -1890,6 +2027,15 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     if (mouseUpInSameCellAsMouseDown && closeButtonDoesNotInterfere) {
         // Is a valid click on the tab.
         [mouseDownCell setCloseButtonPressed:NO];
+
+        // Group header click — toggle collapse.
+        if (cell.isGroupHeader) {
+            if ([[self delegate] respondsToSelector:@selector(tabView:toggleCollapseForGroup:)]) {
+                [[self delegate] tabView:_tabView toggleCollapseForGroup:cell.groupIdentifier];
+            }
+            return;
+        }
+
         switch (theEvent.clickCount) {
             case 1:
                 [self tabClick:cell];
@@ -1912,16 +2058,23 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 - (NSMenu *)menuForEvent:(NSEvent *)event
 {
     NSMenu *menu = nil;
-    NSTabViewItem *item = [[self cellForPoint:[self convertPoint:[event locationInWindow] fromView:nil] cellFrame:nil] representedObject];
+    PSMTabBarCell *cell = [self cellForPoint:[self convertPoint:[event locationInWindow] fromView:nil] cellFrame:nil];
 
-    if (item && [[self delegate] respondsToSelector:@selector(tabView:menuForTabViewItem:)]) {
-        menu = [[self delegate] tabView:_tabView menuForTabViewItem:item];
-    }
-    else if (!item) {
-        // when the "LSUIElement hack" (issue #954) is enabled, the menu bar is inaccessible,
-        // so show it as a context menu when right-clicking empty tabBar region
-        if ([[[NSBundle mainBundle] infoDictionary] objectForKey:@"LSUIElement"]) {
-            menu = [NSApp mainMenu];
+    if (cell.isGroupHeader) {
+        if ([[self delegate] respondsToSelector:@selector(tabView:menuForGroupHeaderCell:)]) {
+            menu = [[self delegate] tabView:_tabView menuForGroupHeaderCell:cell];
+        }
+    } else {
+        NSTabViewItem *item = [cell representedObject];
+        if (item && [[self delegate] respondsToSelector:@selector(tabView:menuForTabViewItem:)]) {
+            menu = [[self delegate] tabView:_tabView menuForTabViewItem:item];
+        }
+        else if (!item) {
+            // when the "LSUIElement hack" (issue #954) is enabled, the menu bar is inaccessible,
+            // so show it as a context menu when right-clicking empty tabBar region
+            if ([[[NSBundle mainBundle] infoDictionary] objectForKey:@"LSUIElement"]) {
+                menu = [NSApp mainMenu];
+            }
         }
     }
     return menu;
@@ -2568,10 +2721,9 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
         return nil;
     }
 
-    int i, cnt = [_cells count];
-    for (i = 0; i < cnt; i++) {
-        PSMTabBarCell *cell = [_cells objectAtIndex:i];
-
+    // Use _displayCells so group header cells are also hit-tested.
+    NSArray<PSMTabBarCell *> *searchCells = _displayCells.count > 0 ? _displayCells : _cells;
+    for (PSMTabBarCell *cell in searchCells) {
         if (NSPointInRect(point, [cell frame])) {
             if (outFrame) {
                 *outFrame = [cell frame];
@@ -2749,7 +2901,7 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
 - (void)moveTabAtIndex:(NSInteger)sourceIndex toTabBar:(PSMTabBarControl *)destinationTabBar atIndex:(NSInteger)destinationIndex {
     assert(destinationTabBar != self);
     PSMTabBarCell *movingCell = _cells[sourceIndex];
-    [destinationTabBar.cells insertObject:movingCell atIndex:destinationIndex];
+    [destinationTabBar.tabCells insertObject:movingCell atIndex:destinationIndex];
     [movingCell setControlView:destinationTabBar];
 
     // Remove the tracking rects and bindings registered on the old tab.

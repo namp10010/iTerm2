@@ -50,6 +50,9 @@ Protocol to be observed by all style delegate objects.  These objects handle the
 
 // drawing
 - (void)drawTabCell:(PSMTabBarCell *)cell highlightAmount:(CGFloat)highlightAmount;
+- (void)drawGroupHeaderCell:(PSMTabBarCell *)cell highlightAmount:(CGFloat)highlightAmount;
+- (CGFloat)minimumWidthOfGroupHeaderCell:(PSMTabBarCell *)cell;
+- (CGFloat)desiredWidthOfGroupHeaderCell:(PSMTabBarCell *)cell;
 - (void)drawBackgroundInRect:(NSRect)rect color:(NSColor*)color horizontal:(BOOL)horizontal;
 - (void)drawTabBar:(PSMTabBarControl *)bar
             inRect:(NSRect)rect
@@ -93,5 +96,6 @@ Protocol to be observed by all style delegate objects.  These objects handle the
 - (NSMutableArray *)cells;
 - (void)sanityCheck:(NSString *)callsite;
 - (void)sanityCheck:(NSString *)callsite force:(BOOL)force;
+- (void)update:(BOOL)animate;
 
 @end

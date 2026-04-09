@@ -447,6 +447,94 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
         return cell.frame.insetBy(dx: -Self.leftDropShadow.size.width, dy: -Self.topDropShadow.size.height)
     }
     
+    @objc func drawGroupHeaderCell(_ cell: PSMTabBarCell, highlightAmount: CGFloat) {
+        let frame = cell.frame
+        guard frame.width > 4 && frame.height > 4 else { return }
+        let color = cell.groupColor ?? NSColor.gray
+
+        // Draw background pill.
+        let pillRect = frame.insetBy(dx: 2, dy: 3)
+        let pill = NSBezierPath(roundedRect: pillRect, xRadius: pillRect.height / 2, yRadius: pillRect.height / 2)
+        color.withAlphaComponent(0.3).set()
+        pill.fill()
+
+        // Draw chevron.
+        let chevronX = pillRect.origin.x + 8
+        let chevronY = pillRect.midY
+        let chevron = NSBezierPath()
+        if cell.groupCollapsed {
+            chevron.move(to: NSPoint(x: chevronX, y: chevronY - 4))
+            chevron.line(to: NSPoint(x: chevronX + 5, y: chevronY))
+            chevron.line(to: NSPoint(x: chevronX, y: chevronY + 4))
+        } else {
+            chevron.move(to: NSPoint(x: chevronX - 2, y: chevronY - 2))
+            chevron.line(to: NSPoint(x: chevronX + 5, y: chevronY - 2))
+            chevron.line(to: NSPoint(x: chevronX + 1.5, y: chevronY + 3))
+        }
+        chevron.close()
+        color.withAlphaComponent(0.8).set()
+        chevron.fill()
+
+        // Draw name text.
+        if let name = cell.groupName, !name.isEmpty {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 10, weight: .medium),
+                .foregroundColor: Self.textColorDefaultSelected(false,
+                                                                backgroundColor: color,
+                                                                windowIsMainAndAppIsActive: true)
+            ]
+            let textX = chevronX + 10
+            let textWidth = pillRect.maxX - textX - 4
+            if textWidth > 0 {
+                let textRect = NSRect(x: textX, y: pillRect.origin.y + 2,
+                                       width: textWidth, height: pillRect.height - 4)
+                name.draw(in: textRect, withAttributes: attrs)
+            }
+        }
+
+        // Draw member count badge when collapsed.
+        if cell.groupCollapsed && cell.groupMemberCount > 0 {
+            let badge = "\(cell.groupMemberCount)"
+            let badgeAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 9, weight: .bold),
+                .foregroundColor: NSColor.white
+            ]
+            let badgeSize = badge.size(withAttributes: badgeAttrs)
+            let badgeWidth = max(badgeSize.width + 8, badgeSize.height + 4)
+            let badgeRect = NSRect(x: pillRect.maxX - badgeWidth - 4,
+                                    y: pillRect.midY - (badgeSize.height + 4) / 2,
+                                    width: badgeWidth, height: badgeSize.height + 4)
+            let badgePath = NSBezierPath(roundedRect: badgeRect,
+                                          xRadius: badgeRect.height / 2,
+                                          yRadius: badgeRect.height / 2)
+            color.set()
+            badgePath.fill()
+            let textRect = NSRect(x: badgeRect.origin.x + (badgeRect.width - badgeSize.width) / 2,
+                                   y: badgeRect.origin.y + (badgeRect.height - badgeSize.height) / 2,
+                                   width: badgeSize.width, height: badgeSize.height)
+            badge.draw(in: textRect, withAttributes: badgeAttrs)
+        }
+    }
+
+    @objc func minimumWidth(ofGroupHeaderCell cell: PSMTabBarCell) -> CGFloat {
+        return 36
+    }
+
+    @objc func desiredWidth(ofGroupHeaderCell cell: PSMTabBarCell) -> CGFloat {
+        var width: CGFloat = 36
+        if let name = cell.groupName, !name.isEmpty {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 10, weight: .medium)
+            ]
+            let nameSize = name.size(withAttributes: attrs)
+            width += nameSize.width + 4
+        }
+        if cell.groupCollapsed && cell.groupMemberCount > 0 {
+            width += 20
+        }
+        return width
+    }
+
     @objc func drawTabCell(_ cell: PSMTabBarCell, highlightAmount: CGFloat) {
         let horizontal = (_orientation == .horizontalOrientation)
         let isFirst = (cell == tabBar?.cells()?.first as? PSMTabBarCell)

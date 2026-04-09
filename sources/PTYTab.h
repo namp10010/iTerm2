@@ -12,6 +12,7 @@
 #import "Api.pbobjc.h"
 
 @class FakeWindow;
+@class iTermTabGroup;
 @protocol iTermTabScope;
 @class iTermVariables;
 @class iTermVariableScope;
@@ -89,6 +90,7 @@ extern NSString *const PTYTabArrangementOptionsPendingJumps;
 // Set to nil to use the default behavior. This is a swifty string.
 @property (nonatomic, copy) NSString *titleOverride;
 @property(nonatomic, getter=isPinned) BOOL pinned;
+@property(nonatomic, weak) iTermTabGroup *tabGroup;
 @property(nonatomic, readonly) NSString *title;  // the effective title
 @property (nonatomic, readonly) iTermVariableScope<iTermTabScope> *variablesScope;
 @property(nonatomic, readonly) iTermMetalUnavailableReason metalUnavailableReason;

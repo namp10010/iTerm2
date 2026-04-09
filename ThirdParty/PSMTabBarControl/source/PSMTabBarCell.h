@@ -59,9 +59,23 @@
 @property(nonatomic) BOOL isProcessing;
 @property(nonatomic, assign) BOOL isPinned;
 
+// Tab group properties
+@property(nonatomic, assign) BOOL isGroupHeader;
+@property(nonatomic, weak) id groupIdentifier;
+@property(nonatomic, copy) NSString *groupName;
+@property(nonatomic, retain) NSColor *groupColor;
+@property(nonatomic, assign) BOOL groupCollapsed;
+@property(nonatomic, assign) NSInteger groupMemberCount;
+
 // creation/destruction
 - (id)initWithControlView:(PSMTabBarControl *)controlView;
 - (id)initPlaceholderWithFrame:(NSRect)frame expanded:(BOOL)value inControlView:(PSMTabBarControl *)controlView;
+- (id)initGroupHeaderWithFrame:(NSRect)frame
+                          name:(NSString *)name
+                         color:(NSColor *)color
+                     collapsed:(BOOL)collapsed
+                   memberCount:(NSInteger)count
+                 inControlView:(PSMTabBarControl *)controlView;
 
 // accessors
 - (void)setStringValue:(NSString *)aString;

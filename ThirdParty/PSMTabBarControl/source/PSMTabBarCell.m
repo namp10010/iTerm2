@@ -241,6 +241,29 @@ static NSRect PSMConvertAccessibilityFrameToScreen(NSView *view, NSRect frame) {
     return self;
 }
 
+- (id)initGroupHeaderWithFrame:(NSRect)frame
+                          name:(NSString *)name
+                         color:(NSColor *)color
+                     collapsed:(BOOL)collapsed
+                   memberCount:(NSInteger)count
+                 inControlView:(PSMTabBarControl *)controlView {
+    self = [super init];
+    if (self) {
+        [self setControlView:controlView];
+        _isGroupHeader = YES;
+        _groupName = [name copy];
+        _groupColor = color;
+        _groupCollapsed = collapsed;
+        _groupMemberCount = count;
+        _hasCloseButton = NO;
+        _modifierString = [@"" copy];
+        _truncationStyle = NSLineBreakByTruncatingTail;
+        [self setFrame:frame];
+        [self setUpAccessibilityElement];
+    }
+    return self;
+}
+
 - (void)dealloc {
     [_delayedStringValueTimer invalidate];
 }
@@ -528,7 +551,11 @@ static NSRect PSMConvertAccessibilityFrameToScreen(NSView *view, NSRect frame) {
         return;
     }
 
-    [[[self psmTabControlView] style] drawTabCell:self highlightAmount:[self highlightAmount]];
+    if (_isGroupHeader) {
+        [[[self psmTabControlView] style] drawGroupHeaderCell:self highlightAmount:[self highlightAmount]];
+    } else {
+        [[[self psmTabControlView] style] drawTabCell:self highlightAmount:[self highlightAmount]];
+    }
 }
 
 - (void)drawPostHocDecorationsOnSelectedCell:(PSMTabBarCell *)cell

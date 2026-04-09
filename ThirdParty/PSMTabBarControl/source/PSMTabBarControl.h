@@ -156,6 +156,15 @@ extern PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider;  // id<P
 - (BOOL)tabViewShouldAllowDragOnAddTabButton:(NSTabView *)tabView;
 - (CGFloat)tabViewDesiredTabBarHeight:(NSTabView *)tabView;
 
+// Tab group support
+- (id)tabGroupForTabViewItem:(NSTabViewItem *)item;
+- (BOOL)isGroupCollapsed:(id)groupIdentifier;
+- (NSColor *)colorForGroup:(id)groupIdentifier;
+- (NSString *)nameForGroup:(id)groupIdentifier;
+- (NSInteger)memberCountForGroup:(id)groupIdentifier;
+- (NSMenu *)tabView:(NSTabView *)tabView menuForGroupHeaderCell:(PSMTabBarCell *)cell;
+- (void)tabView:(NSTabView *)tabView toggleCollapseForGroup:(id)groupIdentifier;
+
 @end
 
 enum {
@@ -226,6 +235,8 @@ typedef NS_ENUM(int, PSMTabPosition) {
 // tab information
 - (NSMutableArray *)representedTabViewItems;
 - (int)numberOfVisibleTabs;
+- (NSArray<PSMTabBarCell *> *)displayCells;
+- (NSMutableArray<PSMTabBarCell *> *)tabCells;
 
 // special effects
 - (void)hideTabBar:(BOOL)hide animate:(BOOL)animate;

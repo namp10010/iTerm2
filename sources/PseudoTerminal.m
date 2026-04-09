@@ -13,6 +13,7 @@
 #import "FutureMethods.h"
 #import "FutureMethods.h"
 #import "ITAddressBookMgr.h"
+#import "iTermTabGroup.h"
 #import "MovePaneController.h"
 #import "NSAlert+iTerm.h"
 #import "NSAppearance+iTerm.h"
@@ -432,6 +433,7 @@ typedef NS_ENUM(int, iTermShouldHaveTitleSeparator) {
     iTermIdempotentOperationJoiner *_rightExtraJoiner;
     BOOL _excursionPrevented;
 
+    NSMutableArray<iTermTabGroup *> *_tabGroups;
 }
 
 @synthesize scope = _scope;
@@ -557,6 +559,7 @@ typedef NS_ENUM(int, iTermShouldHaveTitleSeparator) {
     _titlebarAccessoryNanny.defaultHeight = [self desiredTabBarHeight];
     _automaticallySelectNewTabs = YES;
     _creationTime = [NSDate it_timeSinceBoot];
+    _tabGroups = [[NSMutableArray alloc] init];
     const iTermWindowType windowType = iTermThemedWindowType(unsafeWindowType);
     iTermWindowType savedWindowType = iTermThemedWindowType(unsafeSavedWindowType);
     DLog(@"-[%p finishInitializationWithSmartLayout:%@ windowType:%d screen:%d hotkeyWindowType:%@ ",
@@ -1099,6 +1102,7 @@ ITERM_WEAKLY_REFERENCEABLE
     [_fullScreenEnteredSeal release];
     [_windowSizeHelper release];
     [_titlebarAccessoryNanny release];
+    [_tabGroups release];
 
     [super dealloc];
 }
@@ -6879,6 +6883,15 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
 }
 
 - (void)tabView:(NSTabView *)tabView willRemoveTabViewItem:(NSTabViewItem *)tabViewItem {
+    // Remove tab from its group when closing or moving.
+    PTYTab *tab = [tabViewItem identifier];
+    if (tab.tabGroup) {
+        [tab.tabGroup removeTab:tab];
+        // Check if group is now empty.
+        if ([tab.tabGroup isEmpty]) {
+            [_tabGroups removeObject:tab.tabGroup];
+        }
+    }
     [self saveAffinitiesLater:[tabViewItem identifier]];
 }
 
@@ -7038,6 +7051,10 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     didDropTabViewItem:(NSTabViewItem *)tabViewItem
               inTabBar:(PSMTabBarControl *)aTabBarControl {
     PTYTab *aTab = [tabViewItem identifier];
+    // Remove tab from its group when moving to a different window.
+    if (aTab.tabGroup) {
+        [self removeTab:aTab fromGroup:aTab.tabGroup];
+    }
     PseudoTerminal *term = (PseudoTerminal *)[aTabBarControl delegate];
     [self didDonateTab:aTab toWindowController:term];
 }
@@ -7463,6 +7480,45 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
         [rootMenu addItem:item];
     }
 
+    // Tab group items (not for pinned or tmux tabs)
+    if (![theTab isTmuxTab] && !theTab.isPinned) {
+        [rootMenu addItem:[NSMenuItem separatorItem]];
+        if (theTab.tabGroup == nil) {
+            item = [[[NSMenuItem alloc] initWithTitle:@"Add to New Group"
+                                               action:@selector(addTabToNewGroup:)
+                                        keyEquivalent:@""] autorelease];
+            [item setRepresentedObject:tabViewItem];
+            [rootMenu addItem:item];
+
+            if (_tabGroups.count > 0) {
+                NSMenuItem *addToGroupItem = [[[NSMenuItem alloc] initWithTitle:@"Add to Group"
+                                                                        action:nil
+                                                                 keyEquivalent:@""] autorelease];
+                NSMenu *groupSubmenu = [[[NSMenu alloc] initWithTitle:@"Groups"] autorelease];
+                for (iTermTabGroup *group in _tabGroups) {
+                    NSString *title = group.name ?: [NSString stringWithFormat:@"Group (%lu tabs)", (unsigned long)group.tabs.count];
+                    NSMenuItem *groupItem = [[[NSMenuItem alloc] initWithTitle:title
+                                                                       action:@selector(addTabToExistingGroup:)
+                                                                keyEquivalent:@""] autorelease];
+                    groupItem.representedObject = @{ @"tabViewItem": tabViewItem, @"group": group };
+                    NSImage *swatch = [self colorSwatchImageForColor:group.color];
+                    if (swatch) {
+                        groupItem.image = swatch;
+                    }
+                    [groupSubmenu addItem:groupItem];
+                }
+                addToGroupItem.submenu = groupSubmenu;
+                [rootMenu addItem:addToGroupItem];
+            }
+        } else {
+            item = [[[NSMenuItem alloc] initWithTitle:@"Remove from Group"
+                                               action:@selector(removeTabFromGroupAction:)
+                                        keyEquivalent:@""] autorelease];
+            [item setRepresentedObject:tabViewItem];
+            [rootMenu addItem:item];
+        }
+    }
+
     // add label
     [rootMenu addItem: [NSMenuItem separatorItem]];
     NSSize tabColorViewSize = [ColorsMenuItemView preferredSize];
@@ -7788,6 +7844,94 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
         }
     }
     [_contentView updateTitleAndBorderViews];
+}
+
+#pragma mark - PSMTabBarControlDelegate (Tab Groups)
+
+- (id)tabGroupForTabViewItem:(NSTabViewItem *)item {
+    PTYTab *tab = [item identifier];
+    return tab.tabGroup;
+}
+
+- (BOOL)isGroupCollapsed:(id)groupIdentifier {
+    iTermTabGroup *group = groupIdentifier;
+    return group.isCollapsed;
+}
+
+- (NSColor *)colorForGroup:(id)groupIdentifier {
+    iTermTabGroup *group = groupIdentifier;
+    return group.color;
+}
+
+- (NSString *)nameForGroup:(id)groupIdentifier {
+    iTermTabGroup *group = groupIdentifier;
+    return group.name;
+}
+
+- (NSInteger)memberCountForGroup:(id)groupIdentifier {
+    iTermTabGroup *group = groupIdentifier;
+    return group.tabs.count;
+}
+
+- (NSMenu *)tabView:(NSTabView *)tabView menuForGroupHeaderCell:(PSMTabBarCell *)cell {
+    iTermTabGroup *group = cell.groupIdentifier;
+    if (!group) {
+        return nil;
+    }
+    NSMenu *menu = [[[NSMenu alloc] initWithTitle:@"Group"] autorelease];
+
+    NSMenuItem *item;
+    item = [[[NSMenuItem alloc] initWithTitle:@"Rename Group\u2026"
+                                       action:@selector(renameGroup:)
+                                keyEquivalent:@""] autorelease];
+    item.representedObject = group;
+    item.target = self;
+    [menu addItem:item];
+
+    [menu addItem:[NSMenuItem separatorItem]];
+
+    NSString *collapseTitle = group.isCollapsed ? @"Expand Group" : @"Collapse Group";
+    item = [[[NSMenuItem alloc] initWithTitle:collapseTitle
+                                       action:@selector(toggleCollapseGroup:)
+                                keyEquivalent:@""] autorelease];
+    item.representedObject = group;
+    item.target = self;
+    [menu addItem:item];
+
+    item = [[[NSMenuItem alloc] initWithTitle:@"Ungroup Tabs"
+                                       action:@selector(ungroupTabsAction:)
+                                keyEquivalent:@""] autorelease];
+    item.representedObject = group;
+    item.target = self;
+    [menu addItem:item];
+
+    item = [[[NSMenuItem alloc] initWithTitle:@"Close Group"
+                                       action:@selector(closeGroupAction:)
+                                keyEquivalent:@""] autorelease];
+    item.representedObject = group;
+    item.target = self;
+    [menu addItem:item];
+
+    return menu;
+}
+
+- (void)tabView:(NSTabView *)tabView toggleCollapseForGroup:(id)groupIdentifier {
+    iTermTabGroup *group = groupIdentifier;
+    group.collapsed = !group.collapsed;
+    // If the selected tab is in this group and the group is now collapsed,
+    // select the first visible tab outside the group.
+    if (group.collapsed) {
+        PTYTab *currentTab = [self currentTab];
+        if (currentTab.tabGroup == group) {
+            for (PTYTab *tab in [self tabs]) {
+                if (tab.tabGroup != group) {
+                    [_contentView.tabView selectTabViewItem:tab.tabViewItem];
+                    break;
+                }
+            }
+        }
+    }
+    [self updateTabBar];
 }
 
 - (void)updateTabProgress {
@@ -12142,6 +12286,156 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
         [[iTermRecentTabColors shared] addColor:color];
     }
     [self updateTabColors];
+}
+
+#pragma mark - Tab Groups
+
+- (NSArray<iTermTabGroup *> *)tabGroups {
+    return _tabGroups;
+}
+
+- (iTermTabGroup *)createTabGroupWithTab:(PTYTab *)tab {
+    if (tab.isPinned || tab.tabGroup) {
+        return nil;
+    }
+    NSColor *color = [self nextAvailableGroupColor:tab];
+    iTermTabGroup *group = [[[iTermTabGroup alloc] initWithColor:color] autorelease];
+    [group addTab:tab];
+    [_tabGroups addObject:group];
+    [self updateTabBar];
+    return group;
+}
+
+- (void)addTab:(PTYTab *)tab toGroup:(iTermTabGroup *)group {
+    if (tab.isPinned || tab.tabGroup == group) {
+        return;
+    }
+    if (tab.tabGroup) {
+        [self removeTab:tab fromGroup:tab.tabGroup];
+    }
+    [group addTab:tab];
+    [self updateTabBar];
+}
+
+- (void)removeTab:(PTYTab *)tab fromGroup:(iTermTabGroup *)group {
+    [group removeTab:tab];
+    if ([group isEmpty]) {
+        [self dissolveGroup:group];
+    } else {
+        [self updateTabBar];
+    }
+}
+
+- (void)dissolveGroup:(iTermTabGroup *)group {
+    for (PTYTab *tab in [group.tabs copy]) {
+        [group removeTab:tab];
+    }
+    [_tabGroups removeObject:group];
+    [self updateTabBar];
+}
+
+- (void)closeGroup:(iTermTabGroup *)group {
+    NSArray<PTYTab *> *tabs = [group.tabs copy];
+    [_tabGroups removeObject:group];
+    for (PTYTab *tab in tabs) {
+        tab.tabGroup = nil;
+        [self closeTab:tab];
+    }
+}
+
+- (NSColor *)nextAvailableGroupColor:(PTYTab *)tab {
+    // If the tab already has a colour, use it.
+    NSColor *existingColor = tab.activeSession.tabColor;
+    if (existingColor) {
+        return existingColor;
+    }
+    // Pick the first preset colour not already used by a group.
+    NSArray<NSColor *> *presets = iTermTabGroupPresetColors();
+    NSMutableIndexSet *usedIndices = [NSMutableIndexSet indexSet];
+    for (iTermTabGroup *group in _tabGroups) {
+        for (NSUInteger i = 0; i < presets.count; i++) {
+            if ([group.color isApproximatelyEqualToColor:presets[i] epsilon:0.01]) {
+                [usedIndices addIndex:i];
+                break;
+            }
+        }
+    }
+    for (NSUInteger i = 0; i < presets.count; i++) {
+        if (![usedIndices containsIndex:i]) {
+            return presets[i];
+        }
+    }
+    // All colours used, cycle back to first.
+    return presets.count > 0 ? presets[0] : [NSColor grayColor];
+}
+
+- (void)updateTabBar {
+    [_contentView.tabBarControl update:YES];
+}
+
+- (IBAction)addTabToNewGroup:(id)sender {
+    NSTabViewItem *tabViewItem = [sender representedObject];
+    PTYTab *tab = [tabViewItem identifier];
+    [self createTabGroupWithTab:tab];
+}
+
+- (IBAction)addTabToExistingGroup:(id)sender {
+    NSDictionary *info = [sender representedObject];
+    NSTabViewItem *tabViewItem = info[@"tabViewItem"];
+    iTermTabGroup *group = info[@"group"];
+    PTYTab *tab = [tabViewItem identifier];
+    [self addTab:tab toGroup:group];
+}
+
+- (IBAction)removeTabFromGroupAction:(id)sender {
+    NSTabViewItem *tabViewItem = [sender representedObject];
+    PTYTab *tab = [tabViewItem identifier];
+    if (tab.tabGroup) {
+        [self removeTab:tab fromGroup:tab.tabGroup];
+    }
+}
+
+- (IBAction)renameGroup:(id)sender {
+    iTermTabGroup *group = [sender representedObject];
+    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+    alert.messageText = @"Rename Group";
+    alert.informativeText = @"Enter a name for this tab group:";
+    [alert addButtonWithTitle:@"OK"];
+    [alert addButtonWithTitle:@"Cancel"];
+    NSTextField *input = [[[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 200, 24)] autorelease];
+    input.stringValue = group.name ?: @"";
+    alert.accessoryView = input;
+    if ([alert runModal] == NSAlertFirstButtonReturn) {
+        NSString *name = input.stringValue;
+        group.name = name.length > 0 ? name : nil;
+        [self updateTabBar];
+    }
+}
+
+- (IBAction)toggleCollapseGroup:(id)sender {
+    iTermTabGroup *group = [sender representedObject];
+    group.collapsed = !group.collapsed;
+    [self updateTabBar];
+}
+
+- (IBAction)ungroupTabsAction:(id)sender {
+    iTermTabGroup *group = [sender representedObject];
+    [self dissolveGroup:group];
+}
+
+- (IBAction)closeGroupAction:(id)sender {
+    iTermTabGroup *group = [sender representedObject];
+    [self closeGroup:group];
+}
+
+- (NSImage *)colorSwatchImageForColor:(NSColor *)color {
+    NSImage *image = [[[NSImage alloc] initWithSize:NSMakeSize(12, 12)] autorelease];
+    [image lockFocus];
+    [color set];
+    [[NSBezierPath bezierPathWithOvalInRect:NSMakeRect(1, 1, 10, 10)] fill];
+    [image unlockFocus];
+    image.template = NO;
+    return image;
 }
 
 - (IBAction)compose:(id)sender {

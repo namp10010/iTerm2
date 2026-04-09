@@ -1,4 +1,5 @@
 #import "PTYTab.h"
+#import "iTermTabGroup.h"
 #import "FakeWindow.h"
 #import "IntervalMap.h"
 #import "ITAddressBookMgr.h"
@@ -242,6 +243,7 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
     iTermBuiltInFunctions *_methods;
     iTermTmuxOptionMonitor *_tmuxTitleMonitor;
     BOOL _pinned;
+    __weak iTermTabGroup *_tabGroup;
 }
 
 @synthesize parentWindow = parentWindow_;
@@ -5800,6 +5802,14 @@ typedef struct {
 
 - (BOOL)isPinned {
     return _pinned;
+}
+
+- (iTermTabGroup *)tabGroup {
+    return _tabGroup;
+}
+
+- (void)setTabGroup:(iTermTabGroup *)tabGroup {
+    _tabGroup = tabGroup;
 }
 
 - (void)setTitleOverride:(NSString *)titleOverride {
