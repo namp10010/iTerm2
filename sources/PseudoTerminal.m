@@ -12302,6 +12302,7 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
     iTermTabGroup *group = [[[iTermTabGroup alloc] initWithColor:color] autorelease];
     [group addTab:tab];
     [_tabGroups addObject:group];
+    [self reorderTabsToMakeGroupContiguous:group];
     [self updateTabBar];
     return group;
 }
@@ -12314,7 +12315,33 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
         [self removeTab:tab fromGroup:tab.tabGroup];
     }
     [group addTab:tab];
+    [self reorderTabsToMakeGroupContiguous:group];
     [self updateTabBar];
+}
+
+// Move all members of a group to be contiguous in the tab order.
+// Members are relocated to follow the first member already in place.
+- (void)reorderTabsToMakeGroupContiguous:(iTermTabGroup *)group {
+    // Snapshot group members in their current tab order before any moves.
+    NSMutableArray<PTYTab *> *members = [NSMutableArray array];
+    for (PTYTab *t in self.tabs) {
+        if (t.tabGroup == group) {
+            [members addObject:t];
+        }
+    }
+    if (members.count <= 1) {
+        return;
+    }
+    // Anchor = first member; move each subsequent member to immediately follow.
+    // Re-query self.tabs each time to get live positions after previous moves.
+    NSInteger nextSlot = [self.tabs indexOfObject:members[0]] + 1;
+    for (NSInteger i = 1; i < (NSInteger)members.count; i++) {
+        NSInteger currentIndex = [self.tabs indexOfObject:members[i]];
+        if (currentIndex != nextSlot) {
+            [self moveTabAtIndex:currentIndex toIndex:nextSlot];
+        }
+        nextSlot++;
+    }
 }
 
 - (void)removeTab:(PTYTab *)tab fromGroup:(iTermTabGroup *)group {

@@ -539,7 +539,7 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
         let horizontal = (_orientation == .horizontalOrientation)
         let isFirst = (cell == tabBar?.cells()?.first as? PSMTabBarCell)
         let isLast = (cell == tabBar?.cells()?.lastObject as? PSMTabBarCell)
-        
+
         if tabBar?.window?.isKeyWindow == true {
             if cell.state == .on {
                 drawDropShadow(cell: cell)
@@ -555,10 +555,27 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
             highlightAmount: highlightAmount,
             isHighlighted: cell.isHighlighted)
         drawInterior(with: cell, inView: cell.controlView, highlightAmount: highlightAmount)
-        
+        drawGroupMemberIndicator(for: cell)
+
         if PSMTahoeTabStyleDebuggingEnabled {
             NSColor.red.set()
             cell.frame.frame(withWidth: 0.5)
+        }
+    }
+
+    private func drawGroupMemberIndicator(for cell: PSMTabBarCell) {
+        guard let groupColor = cell.groupColor else { return }
+        let frame = cell.frame
+        if _orientation == .verticalOrientation {
+            // Continuous left-edge guideline, matching the Chrome vertical tab group style.
+            let stripe = NSRect(x: frame.minX, y: frame.minY, width: 3.0, height: frame.height)
+            groupColor.setFill()
+            stripe.fill()
+        } else {
+            // Bottom-edge stripe for horizontal tab bar.
+            let stripe = NSRect(x: frame.minX, y: frame.maxY - 2.0, width: frame.width, height: 2.0)
+            groupColor.setFill()
+            stripe.fill()
         }
     }
     

@@ -884,6 +884,26 @@
                                                   isLast:cell == _tabBar.cells.lastObject
                                          highlightAmount:highlightAmount];
     [self drawInteriorWithTabCell:cell inView:[cell controlView] highlightAmount:highlightAmount];
+    [self drawGroupMemberIndicatorForCell:cell];
+}
+
+- (void)drawGroupMemberIndicatorForCell:(PSMTabBarCell *)cell {
+    NSColor *groupColor = cell.groupColor;
+    if (!groupColor) {
+        return;
+    }
+    NSRect frame = cell.frame;
+    if (_orientation == PSMTabBarVerticalOrientation) {
+        // Continuous left-edge guideline, matching the Chrome vertical tab group style.
+        NSRect stripe = NSMakeRect(frame.origin.x, frame.origin.y, 3.0, frame.size.height);
+        [groupColor setFill];
+        NSRectFill(stripe);
+    } else {
+        // Bottom-edge stripe for horizontal tab bar.
+        NSRect stripe = NSMakeRect(frame.origin.x, NSMaxY(frame) - 2.0, frame.size.width, 2.0);
+        [groupColor setFill];
+        NSRectFill(stripe);
+    }
 }
 
 - (CGFloat)tabColorBrightness:(PSMTabBarCell *)cell {

@@ -207,7 +207,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     [self setDestinationTabBar:control];
     [_participatingTabBars addObject:control];
     [self setDraggedCell:cell];
-    [self setDraggedCellIndex:[[control cells] indexOfObject:cell]];
+    [self setDraggedCellIndex:[[control tabCells] indexOfObject:cell]];
 
     NSRect cellFrame = [cell frame];
     // list of widths for animation
@@ -222,6 +222,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     NSImage *dragImage = [cell dragImage];
     [[cell indicator] removeFromSuperview];
     [self distributePlaceholdersInTabBar:control withDraggedCell:cell];
+    // Sync _displayCells so cellForPoint: reflects the post-distribution state.
+    // Without this, cellForPoint: returns the dragged cell (which is now absent
+    // from _cells), causing NSNotFound index math and a crash.
+    [control rebuildDisplayCells];
 
     // Set the initial mouse location so the first animation frame can correctly
     // track the target cell.
@@ -240,7 +244,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     [control retain];
 
     NSPasteboardItem *pbItem = [[[NSPasteboardItem alloc] init] autorelease];
-    [pbItem setString:[@([[control cells] indexOfObject:cell]) stringValue]
+    [pbItem setString:[@([[control tabCells] indexOfObject:cell]) stringValue]
               forType:@"com.iterm2.psm.controlitem"];
 
     NSImage *imageToDrag;
@@ -307,8 +311,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     // hide UI buttons
     [[control overflowPopUpButton] setHidden:YES];
     [[control addTabButton] setHidden:YES];
-    if ([[control cells] count] == 0 || ![[[control cells] objectAtIndex:0] isPlaceholder]) {
+    if ([[control tabCells] count] == 0 || ![[[control tabCells] objectAtIndex:0] isPlaceholder]) {
         [self distributePlaceholdersInTabBar:control];
+        [control rebuildDisplayCells];
     }
     [_participatingTabBars addObject:control];
 
@@ -471,16 +476,16 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 
 - (void)reallyPerformDragOperation:(id<NSDraggingInfo>)sender {
     // Move cell.
-    int destinationIndex = [[[self destinationTabBar] cells] indexOfObject:[self targetCell]];
+    int destinationIndex = [[[self destinationTabBar] tabCells] indexOfObject:[self targetCell]];
 
     //there is the slight possibility of the targetCell now being set properly, so avoid errors
-    if (destinationIndex >= [[[self destinationTabBar] cells] count])  {
-        destinationIndex = [[[self destinationTabBar] cells] count] - 1;
+    if (destinationIndex >= [[[self destinationTabBar] tabCells] count])  {
+        destinationIndex = [[[self destinationTabBar] tabCells] count] - 1;
     }
 
     // Clamp to valid range. The pinned/unpinned boundary is enforced below
     // for same-tab-bar drags (after placeholders are removed).
-    int cellCount = (int)[[[self destinationTabBar] cells] count];
+    int cellCount = (int)[[[self destinationTabBar] tabCells] count];
     if (cellCount == 0) {
         return;
     }
@@ -494,7 +499,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
         // Find the index of where the dragged object was just dropped.
         int i;
         int insertIndex = 0;
-        NSArray *cells = [[self destinationTabBar] cells];
+        NSArray *cells = [[self destinationTabBar] tabCells];
         PSMTabBarCell *before = nil;
         if (destinationIndex > 0) {
             before = [cells objectAtIndex:destinationIndex - 1];
@@ -506,7 +511,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 
         NSTabViewItem *newTabViewItem = [[[self destinationTabBar] delegate] tabView:[[self destinationTabBar] tabView]
                                                              unknownObjectWasDropped:sender];
-        cells = [[self destinationTabBar] cells];
+        cells = [[self destinationTabBar] tabCells];
         if (!after) {
             insertIndex = [cells count];
         } else if (!before) {
@@ -536,7 +541,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             [[[self destinationTabBar] tabView] selectTabViewItem:newTabViewItem];
         }
     } else {
-        [[[self destinationTabBar] cells] replaceObjectAtIndex:destinationIndex withObject:[self draggedCell]];
+        [[[self destinationTabBar] tabCells] replaceObjectAtIndex:destinationIndex withObject:[self draggedCell]];
         [[self draggedCell] setControlView:[self destinationTabBar]];
 
         // move actual NSTabViewItem
@@ -547,7 +552,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             [[self sourceTabBar] removeTabForCell:[self draggedCell]];
 
             int i, insertIndex;
-            NSArray *cells = [[self destinationTabBar] cells];
+            NSArray *cells = [[self destinationTabBar] tabCells];
 
             //find the index of where the dragged cell was just dropped
             for (i = 0, insertIndex = 0; (i < [cells count]) && ([cells objectAtIndex:i] != [self draggedCell]); i++, insertIndex++) {
@@ -580,7 +585,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             NSTabViewItem *item = [[self draggedCell] representedObject];
             BOOL reselect = ([tabView selectedTabViewItem] == item);
             int theIndex;
-            NSArray *cells = [[self sourceTabBar] cells];
+            NSArray *cells = [[self sourceTabBar] tabCells];
 
             // Find the index of where the dragged cell was just dropped
             for (theIndex = 0; theIndex < [cells count] && cells[theIndex] != [self draggedCell]; theIndex++) {
@@ -607,7 +612,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                         }
                     }
                     if (clampedIndex != theIndex) {
-                        NSMutableArray *mutCells = [[self sourceTabBar] cells];
+                        NSMutableArray *mutCells = [[self sourceTabBar] tabCells];
                         [mutCells removeObjectAtIndex:theIndex];
                         [mutCells insertObject:[self draggedCell] atIndex:clampedIndex];
                         theIndex = clampedIndex;
@@ -615,7 +620,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                 }
             }
 
-            if ([[[self sourceTabBar] cells] indexOfObject:[self draggedCell]] != _draggedCellIndex &&
+            if ([[[self sourceTabBar] tabCells] indexOfObject:[self draggedCell]] != _draggedCellIndex &&
                 [[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:willDropTabViewItem:inTabBar:)]) {
 
                 [[[self sourceTabBar] delegate] tabView:[[self sourceTabBar] tabView]
@@ -636,7 +641,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
         }
 
         if (([self sourceTabBar] != [self destinationTabBar] ||
-             [[[self sourceTabBar] cells] indexOfObject:[self draggedCell]] != _draggedCellIndex) &&
+             [[[self sourceTabBar] tabCells] indexOfObject:[self draggedCell]] != _draggedCellIndex) &&
             [[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:didDropTabViewItem:inTabBar:)]) {
 
             [[[self sourceTabBar] delegate] tabView:[[self sourceTabBar] tabView]
@@ -685,7 +690,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                        inTabBar:control];
     }
     // Add the dragged tab to the new window.
-    [[control cells] insertObject:[self draggedCell] atIndex:0];
+    [[control tabCells] insertObject:[self draggedCell] atIndex:0];
 
     // Remove the tracking rects and bindings registered on the old tab.
     [self.draggedCell removeCloseButtonTrackingRectFrom:self.sourceTabBar];
@@ -739,7 +744,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 }
 
 - (void)cancelDrag {
-    [[[self sourceTabBar] cells] insertObject:[self draggedCell] atIndex:[self draggedCellIndex]];
+    [[[self sourceTabBar] tabCells] insertObject:[self draggedCell] atIndex:[self draggedCellIndex]];
     [[[self sourceTabBar] window] setAlphaValue:1];  // Make the window visible again.
     [[[self sourceTabBar] window] orderFront:nil];
     [[self sourceTabBar] dragDidFinish];
@@ -1187,7 +1192,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 #endif
 
     BOOL removeFlag = YES;
-    NSArray *cells = [control cells];
+    NSArray *cells = [control tabCells];
     int i, cellCount = [cells count];
     float position = [control orientation] == PSMTabBarHorizontalOrientation ? [[control style] leftMarginForTabBarControl] : [[control style] topMarginForTabBarControl];
 
@@ -1203,6 +1208,34 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
         } else {
             NSRect overCellRect;
             PSMTabBarCell *overCell = [control cellForPoint:mouseLoc cellFrame:&overCellRect];
+
+            // cellForPoint: searches _displayCells, which includes virtual group header
+            // cells. Group headers are not in tabCells, so index arithmetic on them
+            // would produce NSNotFound ± 1 → out-of-bounds crash. Resolve a header hit
+            // to the placeholder just before the group's first real member instead.
+            if (overCell && [overCell isGroupHeader]) {
+                NSArray *displayCells = [control displayCells];
+                NSUInteger headerIdx = [displayCells indexOfObject:overCell];
+                if (headerIdx != NSNotFound) {
+                    for (NSUInteger j = headerIdx + 1; j < displayCells.count; j++) {
+                        PSMTabBarCell *candidate = [displayCells objectAtIndex:j];
+                        if (![candidate isGroupHeader]) {
+                            NSUInteger memberIdx = [cells indexOfObject:candidate];
+                            if (memberIdx != NSNotFound && memberIdx > 0) {
+                                proposedTarget = [cells objectAtIndex:memberIdx - 1];
+                            } else if (memberIdx == 0) {
+                                proposedTarget = [cells objectAtIndex:0];
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (!proposedTarget) {
+                    proposedTarget = [control lastVisibleTab];
+                }
+                overCell = nil; // skip normal processing
+            }
+
             if (overCell) {
                 // mouse among cells - placeholder
                 if ([overCell isPlaceholder]) {
@@ -1226,7 +1259,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                         proposedTarget = [cells objectAtIndex:([cells indexOfObject:overCell] + 1)];
                     }
                 }
-            } else {
+            } else if (!proposedTarget) {
                 // out at end - must find proper cell (could be more in overflow menu)
                 proposedTarget = [control lastVisibleTab];
             }
@@ -1392,12 +1425,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     // called upon first drag - must distribute placeholders
     [self distributePlaceholdersInTabBar:control];
     // replace dragged cell with a placeholder, and clean up surrounding cells
-    int cellIndex = [[control cells] indexOfObject:cell];
+    int cellIndex = [[control tabCells] indexOfObject:cell];
     PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:[[self draggedCell] frame] expanded:YES inControlView:control] autorelease];
     pc.truncationStyle = cell.truncationStyle;
-    [[control cells] replaceObjectAtIndex:cellIndex withObject:pc];
-    [[control cells] removeObjectAtIndex:(cellIndex + 1)];
-    [[control cells] removeObjectAtIndex:(cellIndex - 1)];
+    [[control tabCells] replaceObjectAtIndex:cellIndex withObject:pc];
+    [[control tabCells] removeObjectAtIndex:(cellIndex + 1)];
+    [[control tabCells] removeObjectAtIndex:(cellIndex - 1)];
     // Set the expanded placeholder as the initial target to prevent the first
     // animation frame from picking the wrong target when currentMouseLoc hasn't
     // been set yet.
@@ -1416,33 +1449,35 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
         draggedCellFrame = [draggedCell frame];
         truncationStyle = draggedCell.truncationStyle;
     } else {
-        draggedCellFrame = [[[control cells] objectAtIndex:0] frame];
-        truncationStyle = [[[control cells] objectAtIndex:0] truncationStyle];
+        draggedCellFrame = [[[control tabCells] objectAtIndex:0] frame];
+        truncationStyle = [[[control tabCells] objectAtIndex:0] truncationStyle];
     }
     for (i = 0; i < numVisibleTabs; i++) {
         PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:draggedCellFrame expanded:NO inControlView:control] autorelease];
         pc.truncationStyle = truncationStyle;
-        [[control cells] insertObject:pc atIndex:(2 * i)];
+        [[control tabCells] insertObject:pc atIndex:(2 * i)];
     }
 
     PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:draggedCellFrame expanded:NO inControlView:control] autorelease];
     pc.truncationStyle = truncationStyle;
-    if ([[control cells] count] > (2 * numVisibleTabs)) {
-        [[control cells] insertObject:pc atIndex:(2 * numVisibleTabs)];
+    if ([[control tabCells] count] > (2 * numVisibleTabs)) {
+        [[control tabCells] insertObject:pc atIndex:(2 * numVisibleTabs)];
     } else {
-        [[control cells] addObject:pc];
+        [[control tabCells] addObject:pc];
     }
     ILog(@"distributePlaceholdersInTabBar draggedCell=%@", draggedCell);
 }
 
 - (void)removeAllPlaceholdersFromTabBar:(PSMTabBarControl *)control {
-    int i, cellCount = [[control cells] count];
+    int i, cellCount = [[control tabCells] count];
     for (i = (cellCount - 1); i >= 0; i--) {
-        PSMTabBarCell *cell = [[control cells] objectAtIndex:i];
+        PSMTabBarCell *cell = [[control tabCells] objectAtIndex:i];
         if ([cell isPlaceholder]) {
             [control removeCell:cell];
         }
     }
+    // Sync _displayCells now that placeholders are gone.
+    [control rebuildDisplayCells];
     // redraw
     [[NSRunLoop currentRunLoop] performSelector:@selector(update)
                                          target:control

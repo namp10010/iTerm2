@@ -237,6 +237,9 @@ typedef NS_ENUM(int, PSMTabPosition) {
 - (int)numberOfVisibleTabs;
 - (NSArray<PSMTabBarCell *> *)displayCells;
 - (NSMutableArray<PSMTabBarCell *> *)tabCells;
+// Rebuilds _displayCells from _cells. Call after mutating _cells during drag
+// to keep cellForPoint: consistent with the placeholder state.
+- (void)rebuildDisplayCells;
 
 // special effects
 - (void)hideTabBar:(BOOL)hide animate:(BOOL)animate;

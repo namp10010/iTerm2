@@ -1199,7 +1199,10 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                 header.groupMemberCount = [_delegate memberCountForGroup:group];
             }
             [_displayCells addObject:header];
-        } else if (group == nil) {
+        } else if (group == nil && !cell.isPlaceholder) {
+            // Only exit the current group when a real (non-placeholder) ungrouped
+            // tab is encountered.  Placeholder cells interleaved during drag must
+            // not reset group tracking, otherwise duplicate headers appear.
             currentGroup = nil;
             currentGroupCollapsed = NO;
         }
