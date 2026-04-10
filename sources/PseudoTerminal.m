@@ -38,6 +38,7 @@
 #import "PSMDarkTabStyle.h"
 #import "PSMLightHighContrastTabStyle.h"
 #import "PSMMinimalTabStyle.h"
+#import "PSMTabDragAssistant.h"
 #import "PSMTabStyle.h"
 #import "PSMYosemiteTabStyle.h"
 #import "PTYScrollView.h"
@@ -7051,11 +7052,60 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     didDropTabViewItem:(NSTabViewItem *)tabViewItem
               inTabBar:(PSMTabBarControl *)aTabBarControl {
     PTYTab *aTab = [tabViewItem identifier];
-    // Remove tab from its group when moving to a different window.
-    if (aTab.tabGroup) {
-        [self removeTab:aTab fromGroup:aTab.tabGroup];
-    }
     PseudoTerminal *term = (PseudoTerminal *)[aTabBarControl delegate];
+
+    if (self != term) {
+        // Cross-window drop: unconditionally remove from source group.
+        if (aTab.tabGroup) {
+            [self removeTab:aTab fromGroup:aTab.tabGroup];
+        }
+    } else {
+        // Same-window drop: infer the target group from the tab's new neighbours.
+        // This lets drag-and-drop join or leave groups based on where the tab lands.
+        NSArray<PTYTab *> *tabs = term.tabs;
+        NSInteger newIndex = [tabs indexOfObject:aTab];
+        iTermTabGroup *currentGroup = aTab.tabGroup;
+        iTermTabGroup *targetGroup = nil;
+
+        if (newIndex != NSNotFound) {
+            iTermTabGroup *leftGroup  = (newIndex > 0)
+                                        ? [tabs objectAtIndex:newIndex - 1].tabGroup
+                                        : nil;
+            iTermTabGroup *rightGroup = (newIndex + 1 < (NSInteger)tabs.count)
+                                        ? [tabs objectAtIndex:newIndex + 1].tabGroup
+                                        : nil;
+
+            BOOL targetInsideGroup = [[PSMTabDragAssistant sharedDragAssistant] targetInsideGroup];
+
+            if (leftGroup && rightGroup && leftGroup == rightGroup) {
+                // Sandwiched between two members of the same group.
+                targetGroup = leftGroup;
+            } else if (targetInsideGroup && (rightGroup || leftGroup)) {
+                // The user hovered on a group header or group member, so the
+                // drop should join the group.  Use whichever neighbour has a group.
+                // Covers: top of first member (rightGroup), bottom of last member
+                // (leftGroup), and group header hover.
+                targetGroup = rightGroup ?: leftGroup;
+            } else if (leftGroup == currentGroup || rightGroup == currentGroup) {
+                // One neighbour matches the current group — keep membership.
+                // Handles reordering within a group or dragging a member back.
+                // Non-members: nil==nil fires when both sides are ungrouped → stays nil.
+                targetGroup = currentGroup;
+            }
+        }
+
+        if (targetGroup && targetGroup != currentGroup) {
+            // Joining a (different) group — addTab:toGroup: handles removal from old group.
+            [self addTab:aTab toGroup:targetGroup];
+            [self didDonateTab:aTab toWindowController:term];
+            return;
+        } else if (!targetGroup && currentGroup) {
+            // Dropped outside any group — leave the current group.
+            [self removeTab:aTab fromGroup:currentGroup];
+        }
+        // If targetGroup == currentGroup, tab stays in its group unchanged.
+    }
+
     [self didDonateTab:aTab toWindowController:term];
 }
 

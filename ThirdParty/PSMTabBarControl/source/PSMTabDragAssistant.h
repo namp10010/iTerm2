@@ -23,6 +23,11 @@
 
 @property (nonatomic, readonly) BOOL dropping;
 
+// YES when the current drag target was selected by hovering over a group header,
+// meaning the user intends to drop inside the group (as first member).
+// NO when the target came from hovering over a regular tab cell.
+@property (nonatomic, readonly) BOOL targetInsideGroup;
+
 // Creation/destruction
 + (PSMTabDragAssistant *)sharedDragAssistant;
 

@@ -1198,7 +1198,20 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             if ([_delegate respondsToSelector:@selector(memberCountForGroup:)]) {
                 header.groupMemberCount = [_delegate memberCountForGroup:group];
             }
+            // If the last cell in _displayCells is a placeholder (the slot that sits
+            // just before this group's first member in tabCells during drag), move
+            // it to after the header.  This ensures the drop slot opens visually
+            // inside the group rather than in front of the header.
+            PSMTabBarCell *displaced = nil;
+            if (_displayCells.count > 0 && [[_displayCells lastObject] isPlaceholder]) {
+                displaced = [[_displayCells lastObject] retain];
+                [_displayCells removeLastObject];
+            }
             [_displayCells addObject:header];
+            if (displaced) {
+                [_displayCells addObject:displaced];
+                [displaced release];
+            }
         } else if (group == nil && !cell.isPlaceholder) {
             // Only exit the current group when a real (non-placeholder) ungrouped
             // tab is encountered.  Placeholder cells interleaved during drag must
@@ -1210,10 +1223,13 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         if (currentGroupCollapsed) {
             continue;
         }
-        // Set group colour on member cells for rendering.
-        if (group != nil) {
+        // Set group colour on cells for rendering.  Use currentGroup (not the
+        // cell's own group) so that placeholder cells inside a group are also
+        // tagged — this lets the drag assistant detect that the mouse is over a
+        // group-internal area even when cellForPoint: returns a placeholder.
+        if (currentGroup != nil) {
             if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
-                cell.groupColor = [_delegate colorForGroup:group];
+                cell.groupColor = [_delegate colorForGroup:currentGroup];
             }
         } else {
             cell.groupColor = nil;

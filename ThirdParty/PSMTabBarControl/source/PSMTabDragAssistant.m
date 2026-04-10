@@ -94,6 +94,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     CVDisplayLinkRef _displayLink;
     NSPoint _lastPolledMouseLocation;
 
+    BOOL _targetInsideGroup;
+
 #if PSM_DEBUG_DRAG_PERFORMANCE
     // Performance instrumentation: track timer fire times over the last 5 seconds.
     NSMutableArray<NSNumber *> *_timerFireTimes;
@@ -641,7 +643,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
         }
 
         if (([self sourceTabBar] != [self destinationTabBar] ||
-             [[[self sourceTabBar] tabCells] indexOfObject:[self draggedCell]] != _draggedCellIndex) &&
+             [[[self sourceTabBar] tabCells] indexOfObject:[self draggedCell]] != _draggedCellIndex ||
+             [self sourceTabBar] == [self destinationTabBar]) &&
             [[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:didDropTabViewItem:inTabBar:)]) {
 
             [[[self sourceTabBar] delegate] tabView:[[self sourceTabBar] tabView]
@@ -862,6 +865,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     _animationTimer = nil;
     [_sineCurveWidths removeAllObjects];
     [self setTargetCell:nil];
+    _targetInsideGroup = NO;
     self.temporarilyHiddenWindow = nil;
     [[self sourceTabBar] sanityCheck:@"finishDrag source"];
     [[self destinationTabBar] sanityCheck:@"finishDrag destination"];
@@ -1200,6 +1204,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     // mouse at beginning of tabs
     NSPoint mouseLoc = [self currentMouseLoc];
     PSMTabBarCell *proposedTarget = nil;
+    // Set to YES when the group-header guard picks the target; we skip hysteresis
+    // in that case because the intended slot (inside the group) is spatially far
+    // from the group header cell itself, so distance-based hysteresis would always
+    // block the transition.
+    BOOL skipHysteresis = NO;
+    _targetInsideGroup = NO;
 
     if ([self destinationTabBar] == control) {
         removeFlag = NO;
@@ -1209,30 +1219,49 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             NSRect overCellRect;
             PSMTabBarCell *overCell = [control cellForPoint:mouseLoc cellFrame:&overCellRect];
 
+            // Track whether the hovered cell belongs to a group.  This is used at
+            // drop time to decide group membership: hovering on a group header or
+            // member means "drop into the group"; hovering on an ungrouped tab
+            // means "drop outside the group" even if the placeholder is the same.
+            _targetInsideGroup = (overCell != nil &&
+                                 ([overCell isGroupHeader] || [overCell groupColor] != nil));
+
             // cellForPoint: searches _displayCells, which includes virtual group header
             // cells. Group headers are not in tabCells, so index arithmetic on them
             // would produce NSNotFound ± 1 → out-of-bounds crash. Resolve a header hit
             // to the placeholder just before the group's first real member instead.
             if (overCell && [overCell isGroupHeader]) {
+                // With rebuildDisplayCells' placeholder swap, _displayCells is:
+                //   ..., GroupHeader, PH1, Tab1, PH2, Tab2, ...
+                // PH1 is right after the header, so the first non-header cell is
+                // the placeholder we want.  Use it directly if it's a placeholder;
+                // otherwise fall back to the cell-before-member approach.
                 NSArray *displayCells = [control displayCells];
                 NSUInteger headerIdx = [displayCells indexOfObject:overCell];
                 if (headerIdx != NSNotFound) {
                     for (NSUInteger j = headerIdx + 1; j < displayCells.count; j++) {
                         PSMTabBarCell *candidate = [displayCells objectAtIndex:j];
-                        if (![candidate isGroupHeader]) {
-                            NSUInteger memberIdx = [cells indexOfObject:candidate];
-                            if (memberIdx != NSNotFound && memberIdx > 0) {
-                                proposedTarget = [cells objectAtIndex:memberIdx - 1];
-                            } else if (memberIdx == 0) {
-                                proposedTarget = [cells objectAtIndex:0];
-                            }
+                        if ([candidate isGroupHeader]) {
                             break;
                         }
+                        if ([candidate isPlaceholder]) {
+                            proposedTarget = candidate;
+                            break;
+                        }
+                        // Real member without a preceding placeholder (non-drag state).
+                        NSUInteger memberIdx = [cells indexOfObject:candidate];
+                        if (memberIdx != NSNotFound && memberIdx > 0) {
+                            proposedTarget = [cells objectAtIndex:memberIdx - 1];
+                        } else if (memberIdx == 0) {
+                            proposedTarget = [cells objectAtIndex:0];
+                        }
+                        break;
                     }
                 }
                 if (!proposedTarget) {
                     proposedTarget = [control lastVisibleTab];
                 }
+                skipHysteresis = YES;
                 overCell = nil; // skip normal processing
             }
 
@@ -1267,8 +1296,16 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 
         // Apply hysteresis to prevent target bouncing due to animation-induced boundary shifts.
         // Only change target if it's different AND the mouse is sufficiently into the new target area.
+        // Skip hysteresis when:
+        //  - The group-header guard chose the target (spatially distant by design).
+        //  - The proposed target is a placeholder: placeholders only grow/collapse in-place
+        //    and never jump, so distance-based hysteresis only blocks valid transitions.
         PSMTabBarCell *currentTarget = [self targetCell];
-        if (proposedTarget != currentTarget && currentTarget != nil && proposedTarget != nil) {
+        if (!skipHysteresis &&
+            proposedTarget != currentTarget &&
+            currentTarget != nil &&
+            proposedTarget != nil &&
+            ![proposedTarget isPlaceholder]) {
             // Check if mouse is far enough into the proposed target to accept the change
             NSRect proposedFrame = [proposedTarget frame];
             CGFloat hysteresis = 8.0; // pixels of hysteresis
@@ -1342,39 +1379,107 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     int cellsProcessed = 0;
 #endif
 
-    for (i = 0; i < cellCount; i++) {
-        PSMTabBarCell *cell = [cells objectAtIndex:i];
+    // Iterate _displayCells (which includes virtual group header cells) so that
+    // group headers are repositioned in sync with their member tabs during drag
+    // animation. Real tab cells and placeholders are in both _cells and _displayCells,
+    // so they're processed here too.  Group headers only exist in _displayCells.
+    NSArray *displayCells = [control displayCells];
+    NSUInteger dcCount = displayCells.count;
+    for (NSUInteger di = 0; di < dcCount; di++) {
+        PSMTabBarCell *cell = displayCells[di];
         NSRect newRect = [cell frame];
-        if (![cell isInOverflowMenu]) {
-#if PSM_DEBUG_DRAG_PERFORMANCE
-            cellsProcessed++;
-#endif
-            if([cell isPlaceholder]){
-                if (cell == [self targetCell]) {
-                    NSInteger newStep = [cell currentStep] + 1;
-                    if (newStep >= kPSMTabDragAnimationSteps) {
-                        newStep = kPSMTabDragAnimationSteps - 1;
+
+        if ([cell isGroupHeader]) {
+            // When the user hovers outside the group (_targetInsideGroup=NO) and
+            // the next cell is a placeholder, swap their visual order: render the
+            // placeholder BEFORE the header so the slot appears above the group.
+            // When hovering inside the group, keep the normal order (header first,
+            // placeholder after = slot inside the group).
+            if (!_targetInsideGroup && di + 1 < dcCount &&
+                [displayCells[di + 1] isPlaceholder]) {
+                // Position the placeholder first (before the header).
+                PSMTabBarCell *ph = displayCells[di + 1];
+                NSRect phRect = [ph frame];
+                if ([ph isPlaceholder]) {
+                    if (ph == [self targetCell]) {
+                        NSInteger newStep = [ph currentStep] + 1;
+                        if (newStep >= kPSMTabDragAnimationSteps) newStep = kPSMTabDragAnimationSteps - 1;
+                        [ph setCurrentStep:newStep];
+                    } else {
+                        NSInteger newStep = [ph currentStep] - 1;
+                        if (newStep < 0) newStep = 0;
+                        [ph setCurrentStep:newStep];
+                        if ([ph currentStep] > 0) removeFlag = NO;
                     }
-                    [cell setCurrentStep:newStep];
-                } else {
-                    NSInteger newStep = [cell currentStep] - 1;
-                    if (newStep < 0) {
-                        newStep = 0;
-                    }
-                    [cell setCurrentStep:newStep];
-                    if([cell currentStep] > 0){
-                        removeFlag = NO;
+                    if ([control orientation] == PSMTabBarHorizontalOrientation) {
+                        phRect.size.width = [[_sineCurveWidths objectAtIndex:[ph currentStep]] intValue];
+                    } else {
+                        phRect.size.height = [[_sineCurveWidths objectAtIndex:[ph currentStep]] intValue];
                     }
                 }
-
                 if ([control orientation] == PSMTabBarHorizontalOrientation) {
-                    newRect.size.width = [[_sineCurveWidths objectAtIndex:[cell currentStep]] intValue];
+                    phRect.origin.x = position;
+                    position += phRect.size.width;
                 } else {
-                    newRect.size.height = [[_sineCurveWidths objectAtIndex:[cell currentStep]] intValue];
+                    phRect.origin.y = position;
+                    position += phRect.size.height;
+                }
+                [ph setFrame:phRect];
+
+                // Now position the header after the placeholder.
+                if ([control orientation] == PSMTabBarHorizontalOrientation) {
+                    newRect.origin.x = position;
+                    position += newRect.size.width + [[control style] intercellSpacing];
+                } else {
+                    newRect.origin.y = position;
+                    position += newRect.size.height;
+                }
+                [cell setFrame:newRect];
+                di++; // skip the placeholder (already processed)
+                continue;
+            }
+
+            // Normal: position header, placeholder follows in next iteration.
+            if ([control orientation] == PSMTabBarHorizontalOrientation) {
+                newRect.origin.x = position;
+                position += newRect.size.width + [[control style] intercellSpacing];
+            } else {
+                newRect.origin.y = position;
+                position += newRect.size.height;
+            }
+            [cell setFrame:newRect];
+            continue;
+        }
+
+        if ([cell isInOverflowMenu]) {
+            break;
+        }
+#if PSM_DEBUG_DRAG_PERFORMANCE
+        cellsProcessed++;
+#endif
+        if([cell isPlaceholder]){
+            if (cell == [self targetCell]) {
+                NSInteger newStep = [cell currentStep] + 1;
+                if (newStep >= kPSMTabDragAnimationSteps) {
+                    newStep = kPSMTabDragAnimationSteps - 1;
+                }
+                [cell setCurrentStep:newStep];
+            } else {
+                NSInteger newStep = [cell currentStep] - 1;
+                if (newStep < 0) {
+                    newStep = 0;
+                }
+                [cell setCurrentStep:newStep];
+                if([cell currentStep] > 0){
+                    removeFlag = NO;
                 }
             }
-        } else {
-            break;
+
+            if ([control orientation] == PSMTabBarHorizontalOrientation) {
+                newRect.size.width = [[_sineCurveWidths objectAtIndex:[cell currentStep]] intValue];
+            } else {
+                newRect.size.height = [[_sineCurveWidths objectAtIndex:[cell currentStep]] intValue];
+            }
         }
 
         if ([control orientation] == PSMTabBarHorizontalOrientation) {
