@@ -1166,6 +1166,10 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         if ([_delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
             group = [_delegate tabGroupForTabViewItem:cell.representedObject];
         }
+        // Placeholder that replaced a grouped cell carries the group identity.
+        if (group == nil && cell.isPlaceholder && cell.groupIdentifier != nil) {
+            group = cell.groupIdentifier;
+        }
         if (group != nil && group != currentGroup) {
             // Entering a new group — insert a header cell.
             currentGroup = group;

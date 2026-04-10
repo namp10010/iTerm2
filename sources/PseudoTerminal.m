@@ -7091,6 +7091,9 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
                 // Handles reordering within a group or dragging a member back.
                 // Non-members: nil==nil fires when both sides are ungrouped → stays nil.
                 targetGroup = currentGroup;
+            } else if (targetInsideGroup && currentGroup) {
+                // Single-member group: drop back on own header → stay in group.
+                targetGroup = currentGroup;
             }
         }
 

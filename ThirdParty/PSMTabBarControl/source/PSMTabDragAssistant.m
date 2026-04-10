@@ -1533,6 +1533,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     int cellIndex = [[control tabCells] indexOfObject:cell];
     PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:[[self draggedCell] frame] expanded:YES inControlView:control] autorelease];
     pc.truncationStyle = cell.truncationStyle;
+    // Preserve group identity so the header remains visible when dragging
+    // the sole member of a group.
+    id<PSMTabBarControlDelegate> delegate = (id<PSMTabBarControlDelegate>)[control delegate];
+    if ([delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
+        pc.groupIdentifier = [delegate tabGroupForTabViewItem:cell.representedObject];
+    }
     [[control tabCells] replaceObjectAtIndex:cellIndex withObject:pc];
     [[control tabCells] removeObjectAtIndex:(cellIndex + 1)];
     [[control tabCells] removeObjectAtIndex:(cellIndex - 1)];
