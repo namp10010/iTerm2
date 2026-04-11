@@ -95,6 +95,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     NSPoint _lastPolledMouseLocation;
 
     BOOL _targetInsideGroup;
+    BOOL _draggingGroup;
+    id _draggedGroupIdentifier;
 
 #if PSM_DEBUG_DRAG_PERFORMANCE
     // Performance instrumentation: track timer fire times over the last 5 seconds.
@@ -211,7 +213,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     [self setDraggedCell:cell];
     [self setDraggedCellIndex:[[control tabCells] indexOfObject:cell]];
 
-    NSRect cellFrame = [cell frame];
+    NSRect cellFrame = !NSEqualRects(_groupDragOriginFrame, NSZeroRect) ? _groupDragOriginFrame : [cell frame];
     // list of widths for animation
     [self addSineCurveWidthsWithOrientation:[control orientation] size:cellFrame.size];
 
@@ -221,7 +223,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 
     [[NSCursor closedHandCursor] set];
 
-    NSImage *dragImage = [cell dragImage];
+    NSImage *dragImage = _groupDragImage ?: [cell dragImage];
     [[cell indicator] removeFromSuperview];
     [self distributePlaceholdersInTabBar:control withDraggedCell:cell];
     // Sync _displayCells so cellForPoint: reflects the post-distribution state.
@@ -850,6 +852,15 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     const BOOL wasDragging = self.isDragging;
     [self setIsDragging:NO];
     _dragWindowOriginInitialized = NO;
+    // Reset group drag state BEFORE removing placeholders, because
+    // removeAllPlaceholdersFromTabBar: triggers rebuildDisplayCells which
+    // skips the dragged group's header and members when _draggingGroup is YES.
+    _targetInsideGroup = NO;
+    _draggingGroup = NO;
+    _draggedGroupIdentifier = nil;
+    [_groupDragImage release];
+    _groupDragImage = nil;
+    _groupDragOriginFrame = NSZeroRect;
     [self removeAllPlaceholdersFromTabBar:[self sourceTabBar]];
     [self setSourceTabBar:nil];
     [self setDestinationTabBar:nil];
@@ -865,7 +876,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     _animationTimer = nil;
     [_sineCurveWidths removeAllObjects];
     [self setTargetCell:nil];
-    _targetInsideGroup = NO;
     self.temporarilyHiddenWindow = nil;
     [[self sourceTabBar] sanityCheck:@"finishDrag source"];
     [[self destinationTabBar] sanityCheck:@"finishDrag destination"];

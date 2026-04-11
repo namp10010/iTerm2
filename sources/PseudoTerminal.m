@@ -7054,6 +7054,34 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     PTYTab *aTab = [tabViewItem identifier];
     PseudoTerminal *term = (PseudoTerminal *)[aTabBarControl delegate];
 
+    PSMTabDragAssistant *assistant = [PSMTabDragAssistant sharedDragAssistant];
+    if ([assistant draggingGroup] && self == term) {
+        // Group drag (same window): move all other members to follow the
+        // representative tab.  Group membership is preserved as-is.
+        iTermTabGroup *group = (iTermTabGroup *)[assistant draggedGroupIdentifier];
+        if (group) {
+            NSInteger repIndex = [self.tabs indexOfObject:aTab];
+            if (repIndex != NSNotFound) {
+                NSMutableArray<PTYTab *> *others = [NSMutableArray array];
+                for (PTYTab *t in self.tabs) {
+                    if (t.tabGroup == group && t != aTab) {
+                        [others addObject:t];
+                    }
+                }
+                NSInteger slot = repIndex + 1;
+                for (PTYTab *t in others) {
+                    NSInteger curIdx = [self.tabs indexOfObject:t];
+                    if (curIdx != slot) {
+                        [self moveTabAtIndex:curIdx toIndex:slot];
+                    }
+                    slot++;
+                }
+            }
+        }
+        [self didDonateTab:aTab toWindowController:term];
+        return;
+    }
+
     if (self != term) {
         // Cross-window drop: unconditionally remove from source group.
         if (aTab.tabGroup) {

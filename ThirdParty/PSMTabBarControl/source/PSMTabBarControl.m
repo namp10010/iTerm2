@@ -1172,6 +1172,13 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         }
         if (group != nil && group != currentGroup) {
             // Entering a new group — insert a header cell.
+            // Skip the header when this group is being dragged as a unit;
+            // the header travels with the drag image instead.
+            PSMTabDragAssistant *da = [PSMTabDragAssistant sharedDragAssistant];
+            if ([da draggingGroup] && [da draggedGroupIdentifier] == group) {
+                currentGroup = group;
+                continue;
+            }
             currentGroup = group;
             currentGroupCollapsed = NO;
             if ([_delegate respondsToSelector:@selector(isGroupCollapsed:)]) {
@@ -1237,6 +1244,19 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             }
         } else {
             cell.groupColor = nil;
+        }
+        // During group drag, skip members of the dragged group (keep only
+        // the expanded PH that serves as the drop slot).
+        {
+            PSMTabDragAssistant *da = [PSMTabDragAssistant sharedDragAssistant];
+            if ([da draggingGroup] && currentGroup != nil &&
+                currentGroup == [da draggedGroupIdentifier]) {
+                // The expanded PH has groupIdentifier set; collapsed PHs
+                // and real cells don't — skip them.
+                if (!(cell.isPlaceholder && cell.groupIdentifier != nil)) {
+                    continue;
+                }
+            }
         }
         [_displayCells addObject:cell];
     }
@@ -1973,8 +1993,58 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         float distance = sqrt(dx * dx + dy * dy);
 
         if (cell.isGroupHeader) {
-            // Group header cells cannot be dragged.
-            return;
+            // Resolve the group header to its first real member cell so the
+            // existing drag machinery (which needs a representedObject) works.
+            // Search _cells (not _displayCells) because collapsed groups hide
+            // members from _displayCells.
+            id headerGroup = cell.groupIdentifier;
+            PSMTabBarCell *firstMember = nil;
+            NSMutableArray<PSMTabBarCell *> *memberCells = [NSMutableArray array];
+            for (PSMTabBarCell *c in _cells) {
+                if (c.isPlaceholder) continue;
+                id grp = nil;
+                if ([_delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
+                    grp = [_delegate tabGroupForTabViewItem:[c representedObject]];
+                }
+                if (grp == headerGroup) {
+                    if (!firstMember) firstMember = c;
+                    [memberCells addObject:c];
+                }
+            }
+            if (!firstMember) return;
+            PSMTabDragAssistant *assistant = [PSMTabDragAssistant sharedDragAssistant];
+            assistant.draggingGroup = YES;
+            if ([_delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
+                assistant.draggedGroupIdentifier = [_delegate tabGroupForTabViewItem:[firstMember representedObject]];
+            }
+            // Build composite drag image: header + member cells stacked.
+            // For collapsed groups only the header is shown.
+            NSMutableArray<NSImage *> *images = [NSMutableArray array];
+            [images addObject:[cell dragImage]];
+            if (!cell.groupCollapsed) {
+                for (PSMTabBarCell *c in memberCells) {
+                    [images addObject:[c dragImage]];
+                }
+            }
+            CGFloat totalHeight = 0, maxWidth = 0;
+            for (NSImage *img in images) {
+                totalHeight += img.size.height;
+                if (img.size.width > maxWidth) maxWidth = img.size.width;
+            }
+            NSImage *composite = [[[NSImage alloc] initWithSize:NSMakeSize(maxWidth, totalHeight)] autorelease];
+            [composite lockFocus];
+            CGFloat y = totalHeight;
+            for (NSImage *img in images) {
+                y -= img.size.height;
+                [img drawAtPoint:NSMakePoint(0, y)
+                        fromRect:NSZeroRect
+                       operation:NSCompositingOperationSourceOver
+                        fraction:1.0];
+            }
+            [composite unlockFocus];
+            assistant.groupDragImage = composite;
+            assistant.groupDragOriginFrame = cell.frame;
+            cell = firstMember;
         }
 
         if (distance >= self.minimumTabDragDistance && !_didDrag && ![[PSMTabDragAssistant sharedDragAssistant] isDragging] &&

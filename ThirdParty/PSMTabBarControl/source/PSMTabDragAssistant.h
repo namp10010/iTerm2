@@ -28,6 +28,16 @@
 // NO when the target came from hovering over a regular tab cell.
 @property (nonatomic, readonly) BOOL targetInsideGroup;
 
+// YES when the user is dragging a group header (all members move together).
+@property (nonatomic, assign) BOOL draggingGroup;
+// The group object being dragged (only meaningful when draggingGroup == YES).
+@property (nonatomic, assign) id draggedGroupIdentifier;
+// Drag image to use for group drags (the header cell's image).
+@property (nonatomic, retain) NSImage *groupDragImage;
+// Frame of the group header cell at drag start; used so the drag offset
+// is relative to the header rather than the first member cell.
+@property (nonatomic, assign) NSRect groupDragOriginFrame;
+
 // Creation/destruction
 + (PSMTabDragAssistant *)sharedDragAssistant;
 
