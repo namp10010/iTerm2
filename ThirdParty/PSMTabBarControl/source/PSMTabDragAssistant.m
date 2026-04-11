@@ -1209,12 +1209,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     // from the group header cell itself, so distance-based hysteresis would always
     // block the transition.
     BOOL skipHysteresis = NO;
-    _targetInsideGroup = NO;
+    // Don't reset _targetInsideGroup here.  It is updated below only when a
+    // definite cell is under the mouse.  Keeping the previous value when the
+    // mouse falls in a gap between cells (e.g. between a group header and its
+    // adjacent placeholder) prevents visual oscillation where the header and
+    // placeholder swap positions every frame.
 
     if ([self destinationTabBar] == control) {
         removeFlag = NO;
         if (mouseLoc.x < [[control style] leftMarginForTabBarControl]) {
             proposedTarget = [cells objectAtIndex:0];
+            _targetInsideGroup = NO;  // definitely outside any group
         } else {
             NSRect overCellRect;
             PSMTabBarCell *overCell = [control cellForPoint:mouseLoc cellFrame:&overCellRect];
@@ -1223,8 +1228,11 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             // drop time to decide group membership: hovering on a group header or
             // member means "drop into the group"; hovering on an ungrouped tab
             // means "drop outside the group" even if the placeholder is the same.
-            _targetInsideGroup = (overCell != nil &&
-                                 ([overCell isGroupHeader] || [overCell groupColor] != nil));
+            // Only update when overCell is non-nil; when nil (gap between cells)
+            // keep the previous value to avoid oscillation.
+            if (overCell != nil) {
+                _targetInsideGroup = ([overCell isGroupHeader] || [overCell groupColor] != nil);
+            }
 
             // cellForPoint: searches _displayCells, which includes virtual group header
             // cells. Group headers are not in tabCells, so index arithmetic on them
@@ -1291,6 +1299,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             } else if (!proposedTarget) {
                 // out at end - must find proper cell (could be more in overflow menu)
                 proposedTarget = [control lastVisibleTab];
+                _targetInsideGroup = NO;  // definitely outside any group
             }
         }
 
