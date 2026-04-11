@@ -12367,6 +12367,22 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
     if (tab.tabGroup) {
         [self removeTab:tab fromGroup:tab.tabGroup];
     }
+    // Move the tab to immediately after the group's last existing member
+    // so the group stays in place.  Only needed when the tab is above the
+    // group; when below, reorderTabsToMakeGroupContiguous handles it.
+    NSArray<PTYTab *> *tabs = self.tabs;
+    NSInteger lastMemberIndex = -1;
+    for (NSInteger i = 0; i < (NSInteger)tabs.count; i++) {
+        if ([tabs[i] tabGroup] == group) {
+            lastMemberIndex = i;
+        }
+    }
+    if (lastMemberIndex >= 0) {
+        NSInteger tabIndex = [tabs indexOfObject:tab];
+        if (tabIndex != NSNotFound && tabIndex < lastMemberIndex) {
+            [self moveTabAtIndex:tabIndex toIndex:lastMemberIndex];
+        }
+    }
     [group addTab:tab];
     [self reorderTabsToMakeGroupContiguous:group];
     [self updateTabBar];
