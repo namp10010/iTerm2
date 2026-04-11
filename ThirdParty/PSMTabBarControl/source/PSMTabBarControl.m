@@ -1174,54 +1174,55 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             // Entering a new group — insert a header cell.
             // Skip the header when this group is being dragged as a unit;
             // the header travels with the drag image instead.
+            // Do NOT `continue` — the cell itself (the expanded PH) must
+            // still be added to _displayCells for drop targeting.
             PSMTabDragAssistant *da = [PSMTabDragAssistant sharedDragAssistant];
-            if ([da draggingGroup] && [da draggedGroupIdentifier] == group) {
-                currentGroup = group;
-                continue;
-            }
+            BOOL skipHeader = [da draggingGroup] && [da draggedGroupIdentifier] == group;
             currentGroup = group;
             currentGroupCollapsed = NO;
-            if ([_delegate respondsToSelector:@selector(isGroupCollapsed:)]) {
-                currentGroupCollapsed = [_delegate isGroupCollapsed:group];
-            }
-            NSString *groupId = [group identifier];
-            PSMTabBarCell *header = _groupHeaderCellCache[groupId];
-            if (!header) {
-                header = [[PSMTabBarCell alloc] initGroupHeaderWithFrame:NSZeroRect
-                                                                   name:nil
-                                                                  color:nil
-                                                              collapsed:NO
-                                                            memberCount:0
-                                                          inControlView:self];
-                if (groupId) {
-                    _groupHeaderCellCache[groupId] = header;
+            if (!skipHeader) {
+                if ([_delegate respondsToSelector:@selector(isGroupCollapsed:)]) {
+                    currentGroupCollapsed = [_delegate isGroupCollapsed:group];
                 }
-            }
-            // Update header state from delegate.
-            header.groupIdentifier = group;
-            header.groupCollapsed = currentGroupCollapsed;
-            if ([_delegate respondsToSelector:@selector(nameForGroup:)]) {
-                header.groupName = [_delegate nameForGroup:group];
-            }
-            if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
-                header.groupColor = [_delegate colorForGroup:group];
-            }
-            if ([_delegate respondsToSelector:@selector(memberCountForGroup:)]) {
-                header.groupMemberCount = [_delegate memberCountForGroup:group];
-            }
-            // If the last cell in _displayCells is a placeholder (the slot that sits
-            // just before this group's first member in tabCells during drag), move
-            // it to after the header.  This ensures the drop slot opens visually
-            // inside the group rather than in front of the header.
-            PSMTabBarCell *displaced = nil;
-            if (_displayCells.count > 0 && [[_displayCells lastObject] isPlaceholder]) {
-                displaced = [[_displayCells lastObject] retain];
-                [_displayCells removeLastObject];
-            }
-            [_displayCells addObject:header];
-            if (displaced) {
-                [_displayCells addObject:displaced];
-                [displaced release];
+                NSString *groupId = [group identifier];
+                PSMTabBarCell *header = _groupHeaderCellCache[groupId];
+                if (!header) {
+                    header = [[PSMTabBarCell alloc] initGroupHeaderWithFrame:NSZeroRect
+                                                                       name:nil
+                                                                      color:nil
+                                                                  collapsed:NO
+                                                                memberCount:0
+                                                              inControlView:self];
+                    if (groupId) {
+                        _groupHeaderCellCache[groupId] = header;
+                    }
+                }
+                // Update header state from delegate.
+                header.groupIdentifier = group;
+                header.groupCollapsed = currentGroupCollapsed;
+                if ([_delegate respondsToSelector:@selector(nameForGroup:)]) {
+                    header.groupName = [_delegate nameForGroup:group];
+                }
+                if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
+                    header.groupColor = [_delegate colorForGroup:group];
+                }
+                if ([_delegate respondsToSelector:@selector(memberCountForGroup:)]) {
+                    header.groupMemberCount = [_delegate memberCountForGroup:group];
+                }
+                // If the last cell in _displayCells is a placeholder (the slot that sits
+                // just before this group's first member in tabCells during drag), move
+                // it to after the header.  This ensures the drop slot opens visually
+                // inside the group rather than in front of the header.
+                PSMTabBarCell *displaced = nil;
+                if (_displayCells.count > 0 && [[_displayCells lastObject] isPlaceholder]) {
+                    displaced = [[_displayCells lastObject] retain];
+                    [_displayCells removeLastObject];
+                }
+                [_displayCells addObject:header];
+                if (displaced) {
+                    [_displayCells addObject:displaced];
+                    [displaced release];
+                }
             }
         } else if (group == nil && !cell.isPlaceholder) {
             // Only exit the current group when a real (non-placeholder) ungrouped
@@ -1244,19 +1245,6 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             }
         } else {
             cell.groupColor = nil;
-        }
-        // During group drag, skip members of the dragged group (keep only
-        // the expanded PH that serves as the drop slot).
-        {
-            PSMTabDragAssistant *da = [PSMTabDragAssistant sharedDragAssistant];
-            if ([da draggingGroup] && currentGroup != nil &&
-                currentGroup == [da draggedGroupIdentifier]) {
-                // The expanded PH has groupIdentifier set; collapsed PHs
-                // and real cells don't — skip them.
-                if (!(cell.isPlaceholder && cell.groupIdentifier != nil)) {
-                    continue;
-                }
-            }
         }
         [_displayCells addObject:cell];
     }

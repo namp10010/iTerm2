@@ -856,6 +856,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     // removeAllPlaceholdersFromTabBar: triggers rebuildDisplayCells which
     // skips the dragged group's header and members when _draggingGroup is YES.
     _targetInsideGroup = NO;
+    // Reset hiddenForGroupDrag on all cells before clearing group state.
+    for (PSMTabBarCell *c in [[self sourceTabBar] displayCells]) {
+        c.hiddenForGroupDrag = NO;
+    }
     _draggingGroup = NO;
     _draggedGroupIdentifier = nil;
     [_groupDragImage release];
@@ -1210,6 +1214,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     int i, cellCount = [cells count];
     float position = [control orientation] == PSMTabBarHorizontalOrientation ? [[control style] leftMarginForTabBarControl] : [[control style] topMarginForTabBarControl];
 
+    // Reset hiddenForGroupDrag on all display cells so it's only set for
+    // the current drag's group members below.
+    for (PSMTabBarCell *c in [control displayCells]) {
+        c.hiddenForGroupDrag = NO;
+    }
+
     // identify target cell
     // mouse at beginning of tabs
     NSPoint mouseLoc = [self currentMouseLoc];
@@ -1483,6 +1493,20 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
         if ([cell isInOverflowMenu]) {
             break;
         }
+
+        // During group drag, mark real members of the dragged group as hidden.
+        // They keep their full frame (for cellForPoint: hit testing and PH
+        // target resolution) but drawWithFrame: will skip them.
+        if (_draggingGroup && ![cell isPlaceholder] && ![cell isGroupHeader]) {
+            id<PSMTabBarControlDelegate> delegate = (id<PSMTabBarControlDelegate>)[control delegate];
+            if ([delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
+                id grp = [delegate tabGroupForTabViewItem:[cell representedObject]];
+                if (grp != nil && grp == _draggedGroupIdentifier) {
+                    cell.hiddenForGroupDrag = YES;
+                }
+            }
+        }
+
 #if PSM_DEBUG_DRAG_PERFORMANCE
         cellsProcessed++;
 #endif
@@ -1571,6 +1595,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     [[control tabCells] replaceObjectAtIndex:cellIndex withObject:pc];
     [[control tabCells] removeObjectAtIndex:(cellIndex + 1)];
     [[control tabCells] removeObjectAtIndex:(cellIndex - 1)];
+
     // Set the expanded placeholder as the initial target to prevent the first
     // animation frame from picking the wrong target when currentMouseLoc hasn't
     // been set yet.

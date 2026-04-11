@@ -541,6 +541,9 @@ static NSRect PSMConvertAccessibilityFrameToScreen(NSView *view, NSRect frame) {
 #pragma mark - Drawing
 
 - (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
+    if (_hiddenForGroupDrag) {
+        return;
+    }
     if (_isPlaceholder){
         // Don't draw zero-size placeholders (they appear as thin vertical/horizontal lines)
         if (cellFrame.size.width <= 0 || cellFrame.size.height <= 0) {

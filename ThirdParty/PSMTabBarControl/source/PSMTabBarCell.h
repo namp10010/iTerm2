@@ -40,6 +40,7 @@
 @property(nonatomic, assign) BOOL hasIcon;
 @property(nonatomic, assign) int count;
 @property(nonatomic, assign) BOOL isPlaceholder;
+@property(nonatomic, assign) BOOL hiddenForGroupDrag;
 @property(nonatomic, assign) int currentStep;
 @property(nonatomic, copy) NSString *modifierString;
 @property(nonatomic, retain) NSColor *tabColor;
