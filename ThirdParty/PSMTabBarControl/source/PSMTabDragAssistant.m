@@ -1228,10 +1228,20 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             // drop time to decide group membership: hovering on a group header or
             // member means "drop into the group"; hovering on an ungrouped tab
             // means "drop outside the group" even if the placeholder is the same.
-            // Only update when overCell is non-nil; when nil (gap between cells)
-            // keep the previous value to avoid oscillation.
+            //
+            // Only headers and real tab cells update the flag.  Placeholders are
+            // "transparent" — they keep the previous value, reflecting the
+            // approach direction.  This prevents oscillation (the displaced PH
+            // after a header has nil groupColor) and correctly distinguishes
+            // "coming from above" (NO) vs "coming from the header" (YES) when
+            // the mouse lands on the same placeholder.
             if (overCell != nil) {
-                _targetInsideGroup = ([overCell isGroupHeader] || [overCell groupColor] != nil);
+                if ([overCell isGroupHeader]) {
+                    _targetInsideGroup = YES;
+                } else if (![overCell isPlaceholder]) {
+                    _targetInsideGroup = ([overCell groupColor] != nil);
+                }
+                // Placeholder: keep previous _targetInsideGroup value.
             }
 
             // cellForPoint: searches _displayCells, which includes virtual group header

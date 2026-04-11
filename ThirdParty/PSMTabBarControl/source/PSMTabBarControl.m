@@ -1214,12 +1214,6 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             [_displayCells addObject:header];
             if (displaced) {
                 [_displayCells addObject:displaced];
-                // The displaced placeholder was processed before the group was
-                // entered, so its groupColor is nil.  Tag it now so that the
-                // drag assistant detects hovering inside the group correctly.
-                if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
-                    displaced.groupColor = [_delegate colorForGroup:currentGroup];
-                }
                 [displaced release];
             }
         } else if (group == nil && !cell.isPlaceholder) {
