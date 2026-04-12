@@ -1696,6 +1696,23 @@ static TECObjectRef CreateTECConverterForUTF8Variants(TextEncodingVariant varian
     }];
 }
 
+- (NSString *)stringByReplacingControlCharactersExceptNewlineWithCaretLetter {
+    // Like stringByReplacingControlCharactersWithCaretLetter but preserves \n (0x0A).
+    return [self stringByReplacingOccurrencesOfRegex:@"[\x00-\x09\x0b-\x1f\x7f]" usingBlock:^NSString *(NSInteger captureCount, NSString *const __unsafe_unretained *capturedStrings, const NSRange *capturedRanges, volatile BOOL *const stop) {
+        NSMutableString *replacement = [NSMutableString string];
+        const NSInteger index = capturedRanges[0].location;
+        for (NSInteger i = 0; i < capturedRanges[0].length; i++) {
+            unichar c = [[self substringWithRange:NSMakeRange(index + i, 1)] characterAtIndex:0];
+            if (c == 0x7f) {
+                [replacement appendString:@"^?"];
+            } else {
+                [replacement appendFormat:@"^%c", c + '@'];
+            }
+        }
+        return replacement;
+    }];
+}
+
 - (NSSet *)doubleDollarVariables {
     NSMutableSet *set = [NSMutableSet set];
     NSRange rangeToSearch = NSMakeRange(0, self.length);

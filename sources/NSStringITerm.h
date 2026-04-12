@@ -229,6 +229,9 @@ int decode_utf8_char(const unsigned char * restrict datap,
 // Characters in [0, 31] and 127 get replaced with ?
 - (NSString *)stringByReplacingControlCharactersWithCaretLetter;
 
+// Like above, but preserves newline characters (\n).
+- (NSString *)stringByReplacingControlCharactersExceptNewlineWithCaretLetter;
+
 // Returns the set of $$VARIABLES$$ in the string.
 - (NSSet *)doubleDollarVariables;
 

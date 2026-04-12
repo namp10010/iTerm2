@@ -2566,7 +2566,7 @@ static BOOL VT100TokenIsTmux(VT100Token *token) {
             break;
         case XTERMCC_WINICON_TITLE: {
             NSString *title = [[self stringBeforeNewline:token.string] stringByReplacingControlCharactersWithCaretLetter];
-            NSString *subtitle = [[self subtitleFromIconTitle:token.string] stringByReplacingControlCharactersWithCaretLetter];
+            NSString *subtitle = [[self subtitleFromIconTitle:token.string] stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
             if (!subtitle || title.length > 0) {
                 [_delegate terminalSetWindowTitle:title];
                 [_delegate terminalSetIconTitle:title];
@@ -2675,7 +2675,7 @@ static BOOL VT100TokenIsTmux(VT100Token *token) {
             }
             break;
         case XTERMCC_ICON_TITLE: {
-            NSString *subtitle = [[self subtitleFromIconTitle:token.string] stringByReplacingControlCharactersWithCaretLetter];
+            NSString *subtitle = [[self subtitleFromIconTitle:token.string] stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
             if (!subtitle || token.string.length > 0) {
                 [_delegate terminalSetIconTitle:[[self stringBeforeNewline:token.string] stringByReplacingControlCharactersWithCaretLetter]];
             }
@@ -5656,11 +5656,21 @@ static iTermPromise<NSNumber *> *VT100TerminalPromiseOfDECRPMSettingFromBoolean(
 
 - (NSString *)subtitleFromIconTitle:(NSString *)title {
     NSCharacterSet *newlinesCharacterSet = [NSCharacterSet characterSetWithCharactersInString:@"\r\n"];
-    NSRange newlineRange = [title rangeOfCharacterFromSet:newlinesCharacterSet options:NSBackwardsSearch];
+    NSRange newlineRange = [title rangeOfCharacterFromSet:newlinesCharacterSet];
     if (newlineRange.location == NSNotFound) {
         return nil;
     }
-    return [title substringFromIndex:NSMaxRange(newlineRange)];
+    // Skip past all consecutive \r and \n at the split point, then strip any
+    // remaining \r characters (TTY onlcr adds \r before \n).
+    NSUInteger start = NSMaxRange(newlineRange);
+    while (start < title.length && [newlinesCharacterSet characterIsMember:[title characterAtIndex:start]]) {
+        start++;
+    }
+    if (start >= title.length) {
+        return nil;
+    }
+    NSString *subtitle = [title substringFromIndex:start];
+    return [subtitle stringByReplacingOccurrencesOfString:@"\r" withString:@""];
 }
 
 // This is used for titles received from the remote host.

@@ -5577,7 +5577,7 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 }
 
 - (NSString *)subtitle {
-    return [_subtitleSwiftyString.evaluatedString stringByReplacingOccurrencesOfString:@"\n" withString:@" "];
+    return _subtitleSwiftyString.evaluatedString;
 }
 
 - (BOOL)doesSwiftyString:(iTermSwiftyString *)swiftyString

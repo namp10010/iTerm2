@@ -950,22 +950,51 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
                       orientation: PSMTabBarOrientation,
                       xOrigin: CGFloat,
                       maxWidth: CGFloat,
+                      titleBottomY: CGFloat,
                       labelOffset: CGFloat,
                       mainLabelHeight: CGFloat) {
         guard let cachedSubtitle = cell.cachedSubtitle, !cachedSubtitle.isEmpty else {
             return
         }
-        
+
         let attributedString = cachedSubtitle.attributedStringForcingLeftAlignment(orientation == .verticalOrientation,
                                                                                    truncatedForWidth: maxWidth)
-        let boundingSize = cachedSubtitle.boundingRect(with: NSSize(width: maxWidth, height: cell.frame.height)).size
-        var labelRect = NSRect()
-        labelRect.origin.x = xOrigin
-        labelRect.origin.y = cell.frame.origin.y + floor((cell.frame.size.height - boundingSize.height) / 2.0) + labelOffset + mainLabelHeight + verticalOffsetForSubtitle()
-        labelRect.size.height = boundingSize.height
-        labelRect.size.width = maxWidth
-        
-        attributedString.draw(in: labelRect)
+
+        if orientation == .verticalOrientation {
+            let wrappingString = wordWrappingAttributedString(from: attributedString)
+            let subtitleTop = titleBottomY + 2.0
+            let availableHeight = (cell.frame.origin.y + cell.frame.size.height) - subtitleTop
+            guard availableHeight > 0 else { return }
+
+            let measuredRect = wrappingString.boundingRect(
+                with: NSSize(width: maxWidth, height: availableHeight),
+                options: [.usesLineFragmentOrigin])
+            let subtitleHeight = min(measuredRect.height, availableHeight)
+
+            let labelRect = NSRect(x: xOrigin, y: subtitleTop, width: maxWidth, height: subtitleHeight)
+            wrappingString.draw(with: labelRect,
+                                options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+        } else {
+            let boundingSize = cachedSubtitle.boundingRect(with: NSSize(width: maxWidth, height: cell.frame.height)).size
+            var labelRect = NSRect()
+            labelRect.origin.x = xOrigin
+            labelRect.origin.y = cell.frame.origin.y + floor((cell.frame.size.height - boundingSize.height) / 2.0) + labelOffset + mainLabelHeight + verticalOffsetForSubtitle()
+            labelRect.size.height = boundingSize.height
+            labelRect.size.width = maxWidth
+            attributedString.draw(in: labelRect)
+        }
+    }
+
+    private func wordWrappingAttributedString(from source: NSAttributedString) -> NSAttributedString {
+        let mutable = NSMutableAttributedString(attributedString: source)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+        mutable.enumerateAttribute(.paragraphStyle, in: fullRange, options: []) { value, range, _ in
+            let oldStyle = (value as? NSParagraphStyle) ?? NSParagraphStyle.default
+            let newStyle = oldStyle.mutableCopy() as! NSMutableParagraphStyle
+            newStyle.lineBreakMode = .byWordWrapping
+            mutable.addAttribute(.paragraphStyle, value: newStyle, range: range)
+        }
+        return mutable
     }
     
     private func subtitleWidth(cell: PSMTabBarCell, orientation: PSMTabBarOrientation) -> CGFloat {
@@ -1647,6 +1676,7 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
                                   gravity: orientation == .horizontalOrientation ? .center : .left) { resolved in
                 let labelOffset: CGFloat
                 let mainLabelHeight: CGFloat
+                var titleBottomY: CGFloat = 0
                 if let cachedTitle = cell.cachedTitle,
                    !cachedTitle.isEmpty {
                     let drawString: NSAttributedString
@@ -1667,10 +1697,19 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
                     var rect = resolved.frame
                     let boundingSize = cachedTitle.boundingRect(with: NSSize(width: resolved.frame.width, height: cell.frame.height)).size
                     mainLabelHeight = boundingSize.height
-                    labelOffset = PSMTahoeTabStyle.willDrawSubtitle(cell.cachedSubtitle) ? PSMTahoeTabStyle.verticalOffsetForTitleWhenSubtitlePresent : 0
-                    rect.origin.y = cell.frame.origin.y + floor((cell.frame.size.height - boundingSize.height) / 2.0) + labelOffset + textShift
+                    let hasSubtitle = PSMTahoeTabStyle.willDrawSubtitle(cell.cachedSubtitle)
+                    if orientation == .verticalOrientation && hasSubtitle {
+                        // Pin title near the top of the cell to maximise subtitle space.
+                        let topPadding: CGFloat = 4.0
+                        labelOffset = 0
+                        rect.origin.y = cell.frame.origin.y + topPadding + textShift
+                    } else {
+                        labelOffset = hasSubtitle ? PSMTahoeTabStyle.verticalOffsetForTitleWhenSubtitlePresent : 0
+                        rect.origin.y = cell.frame.origin.y + floor((cell.frame.size.height - boundingSize.height) / 2.0) + labelOffset + textShift
+                    }
                     rect.size.height = boundingSize.height
                     drawString.draw(in: rect)
+                    titleBottomY = rect.origin.y + rect.size.height
                 } else {
                     labelOffset = 0
                     mainLabelHeight = 0
@@ -1682,6 +1721,7 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
                                       orientation: orientation,
                                       xOrigin: resolved.frame.minX,
                                       maxWidth: resolved.frame.width,
+                                      titleBottomY: titleBottomY,
                                       labelOffset: labelOffset,
                                       mainLabelHeight: mainLabelHeight)
                 }
