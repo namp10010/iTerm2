@@ -834,4 +834,71 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     return [tabColor colorWithAlphaComponent:alpha];
 }
 
+- (void)drawGroupHeaderCell:(PSMTabBarCell *)cell highlightAmount:(CGFloat)highlightAmount {
+    NSRect frame = cell.frame;
+    if (frame.size.width <= 4 || frame.size.height <= 4) return;
+    NSColor *color = cell.groupColor ?: [NSColor grayColor];
+
+    // Draw background — full bleed, square corners for minimal theme.
+    NSBezierPath *bg = [NSBezierPath bezierPathWithRect:frame];
+    [[color colorWithAlphaComponent:0.3] set];
+    [bg fill];
+
+    // Draw chevron.
+    CGFloat chevronX = frame.origin.x + 8;
+    CGFloat chevronY = NSMidY(frame);
+    NSBezierPath *chevron = [NSBezierPath bezierPath];
+    if (cell.groupCollapsed) {
+        [chevron moveToPoint:NSMakePoint(chevronX, chevronY - 4)];
+        [chevron lineToPoint:NSMakePoint(chevronX + 5, chevronY)];
+        [chevron lineToPoint:NSMakePoint(chevronX, chevronY + 4)];
+    } else {
+        [chevron moveToPoint:NSMakePoint(chevronX - 2, chevronY - 2)];
+        [chevron lineToPoint:NSMakePoint(chevronX + 5, chevronY - 2)];
+        [chevron lineToPoint:NSMakePoint(chevronX + 1.5, chevronY + 3)];
+    }
+    [chevron closePath];
+    [[color colorWithAlphaComponent:0.8] set];
+    [chevron fill];
+
+    // Draw name text.
+    if (cell.groupName.length > 0) {
+        NSDictionary *attrs = @{
+            NSFontAttributeName: [NSFont systemFontOfSize:10 weight:NSFontWeightMedium],
+            NSForegroundColorAttributeName: [self textColorDefaultSelected:NO
+                                                          backgroundColor:color
+                                                       windowIsMainAndAppIsActive:YES]
+        };
+        CGFloat textX = chevronX + 10;
+        CGFloat textWidth = NSMaxX(frame) - textX - 4;
+        if (textWidth > 0) {
+            NSRect textRect = NSMakeRect(textX, frame.origin.y + 1, textWidth, frame.size.height - 2);
+            [cell.groupName drawInRect:textRect withAttributes:attrs];
+        }
+    }
+
+    // Draw member count badge when collapsed.
+    if (cell.groupCollapsed && cell.groupMemberCount > 0) {
+        NSString *badge = [NSString stringWithFormat:@"%ld", (long)cell.groupMemberCount];
+        NSDictionary *badgeAttrs = @{
+            NSFontAttributeName: [NSFont systemFontOfSize:9 weight:NSFontWeightBold],
+            NSForegroundColorAttributeName: [NSColor whiteColor]
+        };
+        NSSize badgeSize = [badge sizeWithAttributes:badgeAttrs];
+        CGFloat badgeWidth = MAX(badgeSize.width + 8, badgeSize.height + 4);
+        NSRect badgeRect = NSMakeRect(NSMaxX(frame) - badgeWidth - 4,
+                                       NSMidY(frame) - (badgeSize.height + 4) / 2,
+                                       badgeWidth, badgeSize.height + 4);
+        NSBezierPath *badgePath = [NSBezierPath bezierPathWithRoundedRect:badgeRect
+                                                                  xRadius:badgeRect.size.height / 2
+                                                                  yRadius:badgeRect.size.height / 2];
+        [color set];
+        [badgePath fill];
+        NSRect textRect = NSMakeRect(badgeRect.origin.x + (badgeRect.size.width - badgeSize.width) / 2,
+                                      badgeRect.origin.y + (badgeRect.size.height - badgeSize.height) / 2,
+                                      badgeSize.width, badgeSize.height);
+        [badge drawInRect:textRect withAttributes:badgeAttrs];
+    }
+}
+
 @end
