@@ -1107,6 +1107,7 @@
 		A608CCF9214DE7C1007A7B87 /* iTermEquivalenceClassSetTest.m in Sources */ = {isa = PBXBuildFile; fileRef = A6BDB0401B45E8BA00F511E6 /* iTermEquivalenceClassSetTest.m */; };
 		A608CCFA214DE7C1007A7B87 /* iTermIntervalTreeTest.m in Sources */ = {isa = PBXBuildFile; fileRef = A6BDB0471B45EB7F00F511E6 /* iTermIntervalTreeTest.m */; };
 		A608CCFB214DE7C1007A7B87 /* iTermNSStringCategoryTest.m in Sources */ = {isa = PBXBuildFile; fileRef = A6BDB04B1B45EC3A00F511E6 /* iTermNSStringCategoryTest.m */; };
+		8E867D6ADDE54EEE915EC3C0 /* VT100TerminalSubtitleTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 808D2DC5AAA742048FB18A82 /* VT100TerminalSubtitleTest.m */; };
 		A608CCFC214DE7C1007A7B87 /* iTermPasteHelperTest.m in Sources */ = {isa = PBXBuildFile; fileRef = A6BDB0B61B45FEF700F511E6 /* iTermPasteHelperTest.m */; };
 		A608CCFD214DE7C1007A7B87 /* iTermSemanticHistoryTest.m in Sources */ = {isa = PBXBuildFile; fileRef = A6BDB0B41B45FE7700F511E6 /* iTermSemanticHistoryTest.m */; };
 		A608CCFE214DE7C1007A7B87 /* iTermToolbeltTest.m in Sources */ = {isa = PBXBuildFile; fileRef = A667F3861B48615900705186 /* iTermToolbeltTest.m */; };
@@ -8263,6 +8264,7 @@
 		A6BDB0471B45EB7F00F511E6 /* iTermIntervalTreeTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = iTermIntervalTreeTest.m; sourceTree = "<group>"; };
 		A6BDB0491B45EBD900F511E6 /* VT100CSIParserTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = VT100CSIParserTest.m; sourceTree = "<group>"; };
 		A6BDB04B1B45EC3A00F511E6 /* iTermNSStringCategoryTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = iTermNSStringCategoryTest.m; sourceTree = "<group>"; };
+		808D2DC5AAA742048FB18A82 /* VT100TerminalSubtitleTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = VT100TerminalSubtitleTest.m; sourceTree = "<group>"; };
 		A6BDB04D1B45EC8A00F511E6 /* PTYSessionTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PTYSessionTest.m; sourceTree = "<group>"; };
 		A6BDB04F1B45FBCB00F511E6 /* PTYTextViewTest.m */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.c.objc; path = PTYTextViewTest.m; sourceTree = "<group>"; };
 		A6BDB0B41B45FE7700F511E6 /* iTermSemanticHistoryTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = iTermSemanticHistoryTest.m; sourceTree = "<group>"; };
@@ -13691,6 +13693,7 @@
 				A6A51A3F1B45CEA9007891F3 /* VT100DCSParserTest.m */,
 				A6BDB0451B45EAE700F511E6 /* VT100GridTest.m */,
 				A6BDB0431B45E8EE00F511E6 /* VT100ScreenTest.m */,
+				808D2DC5AAA742048FB18A82 /* VT100TerminalSubtitleTest.m */,
 				A6BDB03F1B45E8BA00F511E6 /* VT100XtermParserTest.m */,
 				A6ACD1F71B62F2210095CB57 /* iTermRuleTest.m */,
 				A61CEAA51C72EA4C00939E97 /* iTermWeakReferenceTest.m */,
@@ -20573,6 +20576,7 @@
 				A61F8E301E62591800D315D0 /* iTermFakeUserDefaults.m in Sources */,
 				A608CD00214DE7C1007A7B87 /* PTYTextViewTest.m in Sources */,
 				A608CCFB214DE7C1007A7B87 /* iTermNSStringCategoryTest.m in Sources */,
+				8E867D6ADDE54EEE915EC3C0 /* VT100TerminalSubtitleTest.m in Sources */,
 				A608CD09214DE7C1007A7B87 /* iTermAutomaticProfileSwitcherTest.m in Sources */,
 				A60BB37F1EB5149100D76C09 /* iTermCopyModeState.m in Sources */,
 				53D68F842283FA4B0018710D /* iTermTmuxLayoutBuilderTest.m in Sources */,

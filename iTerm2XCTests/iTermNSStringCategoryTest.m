@@ -580,6 +580,49 @@
     XCTAssertEqualObjects(actual, @"12^A34^B56");
 }
 
+#pragma mark - stringByReplacingControlCharactersExceptNewlineWithCaretLetter
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_Empty {
+    NSString *actual = [@"" stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"");
+}
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_SingleControlChar {
+    NSString *actual = [[NSString stringWithFormat:@"%c", 1] stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"^A");
+}
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_NewlinePreserved {
+    NSString *actual = [@"\n" stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"\n");
+}
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_Backspace {
+    NSString *actual = [[NSString stringWithFormat:@"%c", 0x7f] stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"^?");
+}
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_TabReplacedNewlineKept {
+    // Tab (0x09) should be replaced, newline (0x0A) should be kept.
+    NSString *actual = [[NSString stringWithFormat:@"%c\n", 0x09] stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"^I\n");
+}
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_MixedWithText {
+    NSString *actual = [[NSString stringWithFormat:@"hello%cworld\nfoo%cbar", 1, 2] stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"hello^Aworld\nfoo^Bbar");
+}
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_OnlyNewlines {
+    NSString *actual = [@"\n\n\n" stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"\n\n\n");
+}
+
+- (void)testReplaceControlCharactersExceptNewlineWithCaretLetter_AdjacentControlAndNewline {
+    NSString *actual = [[NSString stringWithFormat:@"%c\n%c", 1, 2] stringByReplacingControlCharactersExceptNewlineWithCaretLetter];
+    XCTAssertEqualObjects(actual, @"^A\n^B");
+}
+
 - (void)testEncodeNullString {
     const unichar zero = 0;
     NSString *actual = [[NSString stringWithCharacters:&zero length:1] jsonEncodedString];
