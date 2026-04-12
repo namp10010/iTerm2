@@ -205,6 +205,14 @@ NSString *const TERMINAL_ARRANGEMENT_SCROLLER_WIDTH = @"Scroller Width";
 NSString *const TERMINAL_ARRANGEMENT_MINIATURIZED = @"miniaturized";
 NSString *const TERMINAL_ARRANGEMENT_SIZE_LOCKED = @"Size Locked";
 
+// Tab group arrangement keys.
+static NSString *const TERMINAL_ARRANGEMENT_TAB_GROUPS = @"Tab Groups";
+static NSString *const TAB_GROUP_ARRANGEMENT_IDENTIFIER = @"Tab Group Identifier";
+static NSString *const TAB_GROUP_ARRANGEMENT_NAME = @"Tab Group Name";
+static NSString *const TAB_GROUP_ARRANGEMENT_COLOR = @"Tab Group Color";
+static NSString *const TAB_GROUP_ARRANGEMENT_COLLAPSED = @"Tab Group Collapsed";
+static NSString *const TAB_GROUP_ARRANGEMENT_TAB_GUIDS = @"Tab Group Tab GUIDs";
+
 static void iTermPercentageSanitize(iTermPercentage *percentage) {
     if (percentage->width >= 0) {
         if (percentage->width <= 0 || percentage->width > 100) {
@@ -3636,6 +3644,7 @@ ITERM_WEAKLY_REFERENCEABLE
     if (!restoreTabsOK) {
         return NO;
     }
+    [self restoreTabGroupsFromArrangement:arrangement];
     if (arrangement[TERMINAL_ARRANGEMENT_USE_TRANSPARENCY]) {
         useTransparency_ = [arrangement[TERMINAL_ARRANGEMENT_USE_TRANSPARENCY] boolValue];
     }
@@ -3932,34 +3941,58 @@ ITERM_WEAKLY_REFERENCEABLE
                         encoder:(id<iTermEncoderAdapter>)result {
     NSRect rect = [[self window] frame];
 
-    return [PseudoTerminal populateArrangementWith:tabsOrSession
-                                 includingContents:includeContents
-                                           encoder:result
-                                      terminalGuid:self.terminalGuid
-                                              rect:rect
-                                   useTransparency:useTransparency_
-                                shouldShowToolbelt:_contentView.shouldShowToolbelt
-                               toolbeltProportions:_contentView.toolbelt.proportions
-                           toolbeltRestorableState:_contentView.toolbelt.restorableState
-                         windowTitleOverrideFormat:self.scope.windowTitleOverrideFormat
-                  hidingToolbeltShouldResizeWindow:hidingToolbeltShouldResizeWindow_
-                                     anyFullScreen:[self anyFullScreen]
-                                    lionFullScreen:[self lionFullScreen]
-                                          oldFrame:oldFrame_
-                                        windowType:self.windowType
-                                   savedWindowType:self.savedWindowType
-                                        percentage:_percentage
-                                    initialProfile:[self expurgatedInitialProfile]
-                                    isHotKeyWindow:self.isHotKeyWindow
-                                  hotkeyWindowType:_hotkeyWindowType
-                                       screenIndex:[[NSScreen screens] indexOfObjectIdenticalTo:[[self window] screen]]
-                      screenNumberFromFirstProfile:_windowPositioner.screenNumberFromFirstProfile
-                                  windowSizeHelper:_windowSizeHelper
-                                  hideAfterOpening:hideAfterOpening_
-                                  selectedTabIndex:[_contentView.tabView indexOfTabViewItem:[_contentView.tabView selectedTabViewItem]]
-                                               tab:nil
-                                       profileGuid:[[[[iTermHotKeyController sharedInstance] profileHotKeyForWindowController:self] profile] objectForKey:KEY_GUID]
-                                       isMaximized:[self isMaximized]];
+    const BOOL ok = [PseudoTerminal populateArrangementWith:tabsOrSession
+                                           includingContents:includeContents
+                                                     encoder:result
+                                                terminalGuid:self.terminalGuid
+                                                        rect:rect
+                                             useTransparency:useTransparency_
+                                          shouldShowToolbelt:_contentView.shouldShowToolbelt
+                                         toolbeltProportions:_contentView.toolbelt.proportions
+                                     toolbeltRestorableState:_contentView.toolbelt.restorableState
+                                   windowTitleOverrideFormat:self.scope.windowTitleOverrideFormat
+                            hidingToolbeltShouldResizeWindow:hidingToolbeltShouldResizeWindow_
+                                               anyFullScreen:[self anyFullScreen]
+                                              lionFullScreen:[self lionFullScreen]
+                                                    oldFrame:oldFrame_
+                                                  windowType:self.windowType
+                                             savedWindowType:self.savedWindowType
+                                                  percentage:_percentage
+                                              initialProfile:[self expurgatedInitialProfile]
+                                              isHotKeyWindow:self.isHotKeyWindow
+                                            hotkeyWindowType:_hotkeyWindowType
+                                                 screenIndex:[[NSScreen screens] indexOfObjectIdenticalTo:[[self window] screen]]
+                                screenNumberFromFirstProfile:_windowPositioner.screenNumberFromFirstProfile
+                                            windowSizeHelper:_windowSizeHelper
+                                            hideAfterOpening:hideAfterOpening_
+                                            selectedTabIndex:[_contentView.tabView indexOfTabViewItem:[_contentView.tabView selectedTabViewItem]]
+                                                         tab:nil
+                                                 profileGuid:[[[[iTermHotKeyController sharedInstance] profileHotKeyForWindowController:self] profile] objectForKey:KEY_GUID]
+                                                 isMaximized:[self isMaximized]];
+    if (!ok) {
+        return NO;
+    }
+
+    // Encode tab groups.
+    if (_tabGroups.count > 0) {
+        NSMutableArray *groupDicts = [NSMutableArray array];
+        for (iTermTabGroup *group in _tabGroups) {
+            NSMutableDictionary *gd = [NSMutableDictionary dictionary];
+            gd[TAB_GROUP_ARRANGEMENT_IDENTIFIER] = group.identifier;
+            if (group.name) {
+                gd[TAB_GROUP_ARRANGEMENT_NAME] = group.name;
+            }
+            gd[TAB_GROUP_ARRANGEMENT_COLOR] = [group.color hexString];
+            gd[TAB_GROUP_ARRANGEMENT_COLLAPSED] = @(group.isCollapsed);
+            gd[TAB_GROUP_ARRANGEMENT_TAB_GUIDS] = [group.tabs mapWithBlock:^id(PTYTab *tab) {
+                return tab.stringUniqueIdentifier;
+            }];
+            [groupDicts addObject:gd];
+        }
+        result[TERMINAL_ARRANGEMENT_TAB_GROUPS] = groupDicts;
+    }
+
+    return YES;
 }
 
 + (BOOL)populateArrangementWith:(iTermOr<NSArray<PTYTab *> *, PTYSession *> *)tabsOrSession
@@ -12373,6 +12406,40 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
 
 - (NSArray<iTermTabGroup *> *)tabGroups {
     return _tabGroups;
+}
+
+- (void)restoreTabGroupsFromArrangement:(NSDictionary *)arrangement {
+    NSArray *groupDicts = arrangement[TERMINAL_ARRANGEMENT_TAB_GROUPS];
+    if (![groupDicts isKindOfClass:[NSArray class]]) {
+        return;
+    }
+    NSMutableDictionary<NSString *, PTYTab *> *guidToTab = [NSMutableDictionary dictionary];
+    for (PTYTab *tab in self.tabs) {
+        guidToTab[tab.stringUniqueIdentifier] = tab;
+    }
+    for (NSDictionary *gd in groupDicts) {
+        NSString *identifier = gd[TAB_GROUP_ARRANGEMENT_IDENTIFIER];
+        NSString *colorHex = gd[TAB_GROUP_ARRANGEMENT_COLOR];
+        NSColor *color = [NSColor colorFromHexString:colorHex];
+        if (!color) {
+            continue;
+        }
+        NSString *name = gd[TAB_GROUP_ARRANGEMENT_NAME];
+        iTermTabGroup *group = [[[iTermTabGroup alloc] initWithIdentifier:identifier
+                                                                    color:color
+                                                                     name:name] autorelease];
+        group.collapsed = [gd[TAB_GROUP_ARRANGEMENT_COLLAPSED] boolValue];
+        NSArray *tabGUIDs = gd[TAB_GROUP_ARRANGEMENT_TAB_GUIDS];
+        for (NSString *guid in tabGUIDs) {
+            PTYTab *tab = guidToTab[guid];
+            if (tab && !tab.tabGroup) {
+                [group addTab:tab];
+            }
+        }
+        if (![group isEmpty]) {
+            [_tabGroups addObject:group];
+        }
+    }
 }
 
 - (iTermTabGroup *)createTabGroupWithTab:(PTYTab *)tab {

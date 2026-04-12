@@ -18,6 +18,9 @@ extern NSArray<NSColor *> *iTermTabGroupPresetColors(void);
 
 - (instancetype)initWithColor:(NSColor *)color;
 - (instancetype)initWithColor:(NSColor *)color name:(nullable NSString *)name;
+- (instancetype)initWithIdentifier:(NSString *)identifier
+                             color:(NSColor *)color
+                              name:(nullable NSString *)name;
 
 - (void)addTab:(PTYTab *)tab;
 - (void)insertTab:(PTYTab *)tab atIndex:(NSUInteger)index;

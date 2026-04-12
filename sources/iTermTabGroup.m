@@ -28,9 +28,15 @@ NSArray<NSColor *> *iTermTabGroupPresetColors(void) {
 }
 
 - (instancetype)initWithColor:(NSColor *)color name:(NSString *)name {
+    return [self initWithIdentifier:[[NSUUID UUID] UUIDString] color:color name:name];
+}
+
+- (instancetype)initWithIdentifier:(NSString *)identifier
+                             color:(NSColor *)color
+                              name:(NSString *)name {
     self = [super init];
     if (self) {
-        _identifier = [[NSUUID UUID] UUIDString];
+        _identifier = [identifier copy];
         _color = color;
         _name = [name copy];
         _tabs = [NSMutableArray array];
