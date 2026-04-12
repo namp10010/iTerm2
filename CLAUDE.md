@@ -1,27 +1,87 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Build and Test Commands
+
+- `make run` -- build Development config and launch the app
+- `tools/build.sh` (or `tools/build.sh Development`) -- debug build only, logs to `tmp/build.log`
+- `make test` -- run all unit tests
+- `tools/run_tests.expect ModernTests/TestClass/testMethod` -- run a single test
+- `tools/add_file_to_xcodeproj.rb <file_path> <target_name>` -- add a new file to the Xcode project (e.g., `tools/add_file_to_xcodeproj.rb sources/Example.swift iTerm2SharedARC`)
+
+## Architecture
+
+### Core Object Hierarchy
+
+```
+iTermController (app singleton)
+  └── PseudoTerminal (NSWindowController, one per window)
+        ├── PSMTabBarControl (tab bar UI, ThirdParty, MRC)
+        ├── PTYTab (one per tab, manages split pane layout)
+        │     └── PTYSession (one per terminal pane)
+        │           ├── PTYTask (subprocess I/O)
+        │           ├── PTYTextView (terminal text rendering)
+        │           ├── VT100Terminal (ANSI sequence parser)
+        │           └── VT100Screen (screen buffer model)
+        └── iTermTabGroup (optional, runtime-only tab grouping)
+```
+
+### Memory Management: ARC vs MRC
+
+The codebase is split across two targets with different memory management:
+
+- **iTerm2SharedARC** -- ARC enabled. Most new code goes here.
+- **iTerm2** (main target) -- MRC (manual retain/release). Legacy ObjC code.
+- **ThirdParty/PSMTabBarControl/** -- MRC. All tab bar control code uses manual retain/release.
+
+When adding files, choose the target based on memory management needs. When editing PSMTabBarControl or other MRC code, use `retain`/`release`/`autorelease` explicitly.
+
+### Rendering
+
+GPU-accelerated rendering via Metal:
+- **iTermMetalDriver** (`sources/Metal/`) -- main rendering engine, coordinates ~39 specialised cell renderers
+- Metal shaders in `.metal` files alongside their renderers
+- Fallback to non-Metal path exists for compatibility
+
+### Tab Bar Control (ThirdParty/PSMTabBarControl/)
+
+The tab bar is a heavily customised third-party control. Key concepts:
+
+- **`_cells`** -- 1:1 array with NSTabViewItems. Source of truth for tab ordering.
+- **`_displayCells`** -- derived from `_cells` by `rebuildDisplayCells`. Includes virtual group header cells, excludes collapsed group members. Used for hit testing (`cellForPoint:`) and drawing.
+- **Placeholders** -- during drag, collapsed placeholders are inserted between cells. The dragged cell is replaced by an expanded placeholder. The animation loop (`calculateDragAnimationForTabBar:`) expands/collapses placeholders based on mouse position.
+- **Tab styles** -- `PSMYosemiteTabStyle.m` (ObjC) and `PSMTahoeTabStyle.swift` (Swift) implement the visual appearance.
+
+### Project Structure
+
+```
+sources/           ~2000 files (Swift + ObjC), including sources/Metal/ for GPU rendering
+ThirdParty/        PSMTabBarControl (tab bar), Sparkle (updates), NMSSH (SSH), fmdb (SQLite), etc.
+ModernTests/       Swift XCTest unit tests (~60 files)
+iTerm2XCTests/     ObjC XCTest unit tests (~44 files)
+tests/             Manual test data and scripts (not unit tests)
+tools/             Build scripts (build.sh, add_file_to_xcodeproj.rb, run_tests.expect)
+submodules/        Git submodules (Sparkle, CoreParse, NMSSH, etc.)
+```
+
 ## Code Best Practices
 
-- Avoid writing javascript, html, or CSS that's more than one line long in Swift. Create a new file and use the existing template mechanism to load it.
-- After creating a new file, `git add` it immediately
-- To add a file to the Xcode project, use `tools/add_file_to_xcodeproj.rb <file_path> <target_name>` (e.g., `tools/add_file_to_xcodeproj.rb sources/Example.swift iTerm2SharedARC`)
-- In Swift, use it_fatalError and it_assert instead of fatalError and assert, which do not create useful crash logs. In ObjC, assert is ok although ITAssertWithMessage is preferable.
-- Don't write more than one line of inline javascript, html, or css. Instead create a new file and load it using iTermBrowserTemplateLoader.swift
-- Don't create dependency cycles. Use delegates or closures instead.
-- To run unit tests in ModernTests, use tools/run_tests.expect. It takes an argument naming the test or tests, such as `tools/run_tests.expect ModernTests/iTermScriptFunctionCallTest/testSignature`
-- When renaming a file tracked by git (and almost all of them are) use `git mv` instead of `mv`
-- To make a debug build run `tools/build.sh` (or `tools/build.sh Development`). This saves logs to `tmp/build.log` and shows only errors/warnings on failure.
-- Little scripts or text files that are used for manual testing of features go in tests/
-- The deployment target for iTerm2 is macOS 12. You don't need to perform availability checks for older versions.
-- Don't replace curly quotes with straight quotes. Same for apostrophes and single quotes. If you need help typing a curly quote, just ask. Here are some you can copy and paste: ‘’“”
-- In user-visible strings do not use " except as a shorthand for inch. Prefer curly quotes like “ and ”. I know this goes against your nature, but fight hard here.
-- Never use auto layout in the terminal window. This includes the toolbelt. It virally spreads and breaks autoresizing. It is fine to use it in other windows without a lot of existing autoresizing mask-based code (e.g., the AI chat window)
-- The deployment target is macOS 12. Don't add availability checks for 12 and lower.
+- Don’t write more than one line of inline javascript, html, or CSS. Instead create a new file and load it using iTermBrowserTemplateLoader.swift.
+- After creating a new file, `git add` it immediately.
+- In Swift, use `it_fatalError` and `it_assert` instead of `fatalError` and `assert`, which do not create useful crash logs. In ObjC, `assert` is ok although `ITAssertWithMessage` is preferable.
+- Don’t create dependency cycles. Use delegates or closures instead.
+- When renaming a file tracked by git, use `git mv` instead of `mv`.
+- Little scripts or text files that are used for manual testing of features go in `tests/`.
+- The deployment target is macOS 12. Don’t add availability checks for 12 and lower.
+- Don’t replace curly quotes with straight quotes. Same for apostrophes and single quotes. Copy these if needed: \u2018\u2019\u201c\u201d
+- In user-visible strings do not use “ except as a shorthand for inch. Prefer curly quotes like \u201c and \u201d.
+- Never use auto layout in the terminal window (including the toolbelt). It virally spreads and breaks autoresizing. Fine in other windows (e.g., AI chat window).
 - Never `git add` submodules without express written permission.
-- Don't include AI-generated markdown files (summaries, plans, etc.) in commits — only ship code.
+- Don’t include AI-generated markdown files (summaries, plans, etc.) in commits \u2014 only ship code.
 - Avoid duplicate expressions; hoist shared computations into a named `const` before branching.
-- Don't change defaults silently.
-- Use [iTermUserDefaults userDefaults] instead of [NSUserDefaults standardUserDefaults]
-- Use `make run` to build and run a debug build.
-- Do not use associated objects (objc_getAssociatedObject or objc_setAssociatedObject) without express written permission.
-- You should treat warnings as errors.
-- If you get stuck, ask for help. It's better to ask me to look at something in the debugger than to flail around for a long time.
-- If your changes introduce compiler warnings, fix them.
+- Don’t change defaults silently.
+- Use `[iTermUserDefaults userDefaults]` instead of `[NSUserDefaults standardUserDefaults]`.
+- Do not use associated objects (`objc_getAssociatedObject`/`objc_setAssociatedObject`) without express written permission.
+- Treat warnings as errors. If your changes introduce compiler warnings, fix them.
+- If you get stuck, ask for help. It’s better to ask the user to look at something in the debugger than to flail around.
