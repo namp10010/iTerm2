@@ -896,12 +896,12 @@
     if (_orientation == PSMTabBarVerticalOrientation) {
         // Continuous left-edge guideline, matching the Chrome vertical tab group style.
         NSRect stripe = NSMakeRect(frame.origin.x, frame.origin.y, 3.0, frame.size.height);
-        [groupColor setFill];
+        [[groupColor colorWithAlphaComponent:0.3] setFill];
         NSRectFill(stripe);
     } else {
         // Bottom-edge stripe for horizontal tab bar.
         NSRect stripe = NSMakeRect(frame.origin.x, NSMaxY(frame) - 2.0, frame.size.width, 2.0);
-        [groupColor setFill];
+        [[groupColor colorWithAlphaComponent:0.3] setFill];
         NSRectFill(stripe);
     }
 }

@@ -569,12 +569,12 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
         if _orientation == .verticalOrientation {
             // Continuous left-edge guideline, matching the Chrome vertical tab group style.
             let stripe = NSRect(x: frame.minX, y: frame.minY, width: 3.0, height: frame.height)
-            groupColor.setFill()
+            groupColor.withAlphaComponent(0.3).setFill()
             stripe.fill()
         } else {
             // Bottom-edge stripe for horizontal tab bar.
             let stripe = NSRect(x: frame.minX, y: frame.maxY - 2.0, width: frame.width, height: 2.0)
-            groupColor.setFill()
+            groupColor.withAlphaComponent(0.3).setFill()
             stripe.fill()
         }
     }
