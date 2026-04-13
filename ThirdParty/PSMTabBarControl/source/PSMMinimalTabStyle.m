@@ -902,4 +902,12 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     }
 }
 
+- (NSRect)textRectForGroupHeaderCell:(PSMTabBarCell *)cell {
+    NSRect frame = cell.frame;
+    CGFloat chevronX = frame.origin.x + 8;
+    CGFloat textX = chevronX + 10;
+    CGFloat textWidth = NSMaxX(frame) - textX - 4;
+    return NSMakeRect(textX, frame.origin.y + 1, MAX(textWidth, 0), frame.size.height - 2);
+}
+
 @end

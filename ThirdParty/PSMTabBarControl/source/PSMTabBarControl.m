@@ -147,6 +147,11 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     NSMutableArray<PSMTabBarCell *> *_cells; // the cells that draw the tabs (1:1 with tabViewItems)
     NSMutableArray<PSMTabBarCell *> *_displayCells; // cells + group headers for rendering
     NSMutableDictionary<NSString *, PSMTabBarCell *> *_groupHeaderCellCache; // keyed by group identifier
+    NSTextField *_groupRenameField;
+    PSMTabBarCell *_groupRenameCell;
+    NSString *_groupRenameOriginalName;
+    BOOL _groupRenameReady;
+    id _pendingCollapseGroup;
     NSButton *_overflowPopUpButton; // for too many tabs
     PSMRolloverButton *_addTabButton;
 
@@ -379,6 +384,10 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         cell.controlView = nil;
         [cell release];
     }
+
+    [_groupRenameField removeFromSuperview];
+    [_groupRenameField release];
+    [_groupRenameOriginalName release];
 
     [_overflowPopUpButton release];
     [_cells release];
@@ -1628,6 +1637,11 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 
     [_overflowPopUpButton setHidden:(overflowMenu == nil)];
 
+    // Reposition or cancel inline group rename field after layout.
+    if (_groupRenameField) {
+        [self repositionGroupRenameField];
+    }
+
     // Set up add tab button.
     if (!overflowMenu && _showAddTabButton) {
         NSRect cellRect = [self genericCellRectWithOverflow:YES];
@@ -2109,10 +2123,35 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         // Is a valid click on the tab.
         [mouseDownCell setCloseButtonPressed:NO];
 
-        // Group header click — toggle collapse.
+        // Group header click.
         if (cell.isGroupHeader) {
-            if ([[self delegate] respondsToSelector:@selector(tabView:toggleCollapseForGroup:)]) {
-                [[self delegate] tabView:_tabView toggleCollapseForGroup:cell.groupIdentifier];
+            // Check if click is on the chevron (left of text area).
+            BOOL clickedChevron = NO;
+            if ([_style respondsToSelector:@selector(textRectForGroupHeaderCell:)]) {
+                NSRect textRect = [_style textRectForGroupHeaderCell:cell];
+                clickedChevron = clickPoint.x < textRect.origin.x;
+            }
+
+            if (clickedChevron) {
+                // Chevron click — collapse/expand immediately.
+                if ([[self delegate] respondsToSelector:@selector(tabView:toggleCollapseForGroup:)]) {
+                    [[self delegate] tabView:_tabView toggleCollapseForGroup:cell.groupIdentifier];
+                }
+            } else if ([theEvent clickCount] == 2) {
+                // Cancel the pending single-click collapse.
+                if (_pendingCollapseGroup) {
+                    [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                                             selector:@selector(performGroupCollapse:)
+                                                               object:_pendingCollapseGroup];
+                    _pendingCollapseGroup = nil;
+                }
+                [self beginRenamingGroupHeaderCell:cell];
+            } else if ([theEvent clickCount] == 1) {
+                // Delay collapse briefly to allow double-click to cancel it.
+                _pendingCollapseGroup = cell.groupIdentifier;
+                [self performSelector:@selector(performGroupCollapse:)
+                           withObject:cell.groupIdentifier
+                           afterDelay:0.15];
             }
             return;
         }
@@ -3063,6 +3102,140 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
 
 - (void)progressIndicatorNeedsUpdate {
     [self setNeedsUpdate:YES];
+}
+
+#pragma mark - Group Header Actions
+
+- (void)performGroupCollapse:(id)groupIdentifier {
+    _pendingCollapseGroup = nil;
+    if ([[self delegate] respondsToSelector:@selector(tabView:toggleCollapseForGroup:)]) {
+        [[self delegate] tabView:_tabView toggleCollapseForGroup:groupIdentifier];
+    }
+}
+
+#pragma mark - Inline Group Rename
+
+- (void)beginRenamingGroupHeaderCell:(PSMTabBarCell *)cell {
+    if (_groupRenameField) {
+        [self cancelGroupRename];
+    }
+
+    _groupRenameCell = cell;
+    _groupRenameOriginalName = [cell.groupName copy];
+
+    NSRect textRect;
+    if ([_style respondsToSelector:@selector(textRectForGroupHeaderCell:)]) {
+        textRect = [_style textRectForGroupHeaderCell:cell];
+    } else {
+        NSRect frame = cell.frame;
+        textRect = NSInsetRect(frame, 18, 2);
+    }
+    NSFont *font = [NSFont systemFontOfSize:10 weight:NSFontWeightMedium];
+    NSTextField *field = [[NSTextField alloc] initWithFrame:textRect];
+    field.font = font;
+    field.stringValue = cell.groupName ?: @"";
+    field.bordered = NO;
+    field.drawsBackground = YES;
+    field.backgroundColor = [NSColor controlBackgroundColor];
+    field.focusRingType = NSFocusRingTypeNone;
+    field.editable = YES;
+    field.selectable = YES;
+    field.delegate = (id)self;
+    field.cell.scrollable = YES;
+    field.cell.usesSingleLineMode = YES;
+
+    // Size to fit the font, then centre vertically in the cell.
+    [field sizeToFit];
+    CGFloat fitHeight = NSHeight(field.frame);
+    CGFloat cellMidY = NSMidY(cell.frame);
+    [field setFrame:NSMakeRect(textRect.origin.x, cellMidY - fitHeight / 2,
+                               textRect.size.width, fitHeight)];
+
+    _groupRenameField = field;
+    _groupRenameReady = NO;
+    [self addSubview:_groupRenameField];
+    [self.window makeFirstResponder:_groupRenameField];
+    [_groupRenameField selectText:nil];
+    _groupRenameReady = YES;
+}
+
+- (void)repositionGroupRenameField {
+    if (!_groupRenameField || !_groupRenameCell) {
+        [self cancelGroupRename];
+        return;
+    }
+    // Check the cell is still in the display list.
+    BOOL found = NO;
+    for (PSMTabBarCell *cell in _displayCells) {
+        if (cell == _groupRenameCell) {
+            found = YES;
+            break;
+        }
+    }
+    if (!found) {
+        [self cancelGroupRename];
+        return;
+    }
+    NSRect textRect;
+    if ([_style respondsToSelector:@selector(textRectForGroupHeaderCell:)]) {
+        textRect = [_style textRectForGroupHeaderCell:_groupRenameCell];
+    } else {
+        textRect = NSInsetRect(_groupRenameCell.frame, 18, 2);
+    }
+    [_groupRenameField setFrame:textRect];
+}
+
+- (void)commitGroupRename {
+    if (!_groupRenameField) return;
+
+    NSString *newName = [[_groupRenameField stringValue] copy];
+    id groupIdentifier = _groupRenameCell.groupIdentifier;
+    [self endGroupRename];
+
+    if ([_delegate respondsToSelector:@selector(tabView:didRenameGroup:to:)]) {
+        [_delegate tabView:_tabView didRenameGroup:groupIdentifier to:newName];
+    }
+    [newName release];
+}
+
+- (void)cancelGroupRename {
+    [self endGroupRename];
+}
+
+- (void)endGroupRename {
+    if (!_groupRenameField) return;
+    _groupRenameReady = NO;
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                    name:NSControlTextDidEndEditingNotification
+                                                  object:_groupRenameField];
+    [_groupRenameField removeFromSuperview];
+    [_groupRenameField release];
+    _groupRenameField = nil;
+    _groupRenameCell = nil;
+    [_groupRenameOriginalName release];
+    _groupRenameOriginalName = nil;
+    [self setNeedsDisplay:YES];
+}
+
+- (BOOL)control:(NSControl *)control textView:(NSTextView *)textView doCommandBySelector:(SEL)commandSelector {
+    if (control != _groupRenameField) return NO;
+
+    if (commandSelector == @selector(insertNewline:)) {
+        [self commitGroupRename];
+        return YES;
+    }
+    if (commandSelector == @selector(cancelOperation:)) {
+        [self cancelGroupRename];
+        return YES;
+    }
+    return NO;
+}
+
+- (void)controlTextDidEndEditing:(NSNotification *)notification {
+    if (_groupRenameReady && _groupRenameField && notification.object == _groupRenameField) {
+        [self cancelGroupRename];
+    }
 }
 
 @end

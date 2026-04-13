@@ -516,6 +516,16 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
         }
     }
 
+    @objc func textRect(forGroupHeaderCell cell: PSMTabBarCell) -> NSRect {
+        let frame = cell.frame
+        let pillRect = frame.insetBy(dx: 2, dy: 3)
+        let chevronX = pillRect.origin.x + 8
+        let textX = chevronX + 10
+        let textWidth = max(pillRect.maxX - textX - 4, 0)
+        return NSRect(x: textX, y: pillRect.origin.y + 2,
+                       width: textWidth, height: pillRect.height - 4)
+    }
+
     @objc func minimumWidth(ofGroupHeaderCell cell: PSMTabBarCell) -> CGFloat {
         return 36
     }

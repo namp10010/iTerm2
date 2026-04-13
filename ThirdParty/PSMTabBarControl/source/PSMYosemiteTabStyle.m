@@ -855,6 +855,15 @@
     }
 }
 
+- (NSRect)textRectForGroupHeaderCell:(PSMTabBarCell *)cell {
+    NSRect frame = cell.frame;
+    NSRect pillRect = NSInsetRect(frame, 2, 3);
+    CGFloat chevronX = pillRect.origin.x + 6;
+    CGFloat textX = chevronX + 10;
+    CGFloat textWidth = NSMaxX(pillRect) - textX - 4;
+    return NSMakeRect(textX, pillRect.origin.y + 1, MAX(textWidth, 0), pillRect.size.height - 2);
+}
+
 - (CGFloat)minimumWidthOfGroupHeaderCell:(PSMTabBarCell *)cell {
     return 36;
 }

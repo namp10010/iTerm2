@@ -53,6 +53,7 @@ Protocol to be observed by all style delegate objects.  These objects handle the
 - (void)drawGroupHeaderCell:(PSMTabBarCell *)cell highlightAmount:(CGFloat)highlightAmount;
 - (CGFloat)minimumWidthOfGroupHeaderCell:(PSMTabBarCell *)cell;
 - (CGFloat)desiredWidthOfGroupHeaderCell:(PSMTabBarCell *)cell;
+- (NSRect)textRectForGroupHeaderCell:(PSMTabBarCell *)cell;
 - (void)drawBackgroundInRect:(NSRect)rect color:(NSColor*)color horizontal:(BOOL)horizontal;
 - (void)drawTabBar:(PSMTabBarControl *)bar
             inRect:(NSRect)rect

@@ -164,6 +164,7 @@ extern PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider;  // id<P
 - (NSInteger)memberCountForGroup:(id)groupIdentifier;
 - (NSMenu *)tabView:(NSTabView *)tabView menuForGroupHeaderCell:(PSMTabBarCell *)cell;
 - (void)tabView:(NSTabView *)tabView toggleCollapseForGroup:(id)groupIdentifier;
+- (void)tabView:(NSTabView *)tabView didRenameGroup:(id)groupIdentifier to:(NSString *)newName;
 
 @end
 
@@ -254,6 +255,8 @@ typedef NS_ENUM(int, PSMTabPosition) {
 // Internal inset. Ensures nothing but background is drawn in this are.
 @property(nonatomic, assign) NSEdgeInsets insets;
 @property(nonatomic) CGFloat height;
+
+- (void)beginRenamingGroupHeaderCell:(PSMTabBarCell *)cell;
 
 - (void)setTabColor:(NSColor *)aColor forTabViewItem:(NSTabViewItem *) tabViewItem;
 - (NSColor*)tabColorForTabViewItem:(NSTabViewItem*)tabViewItem;

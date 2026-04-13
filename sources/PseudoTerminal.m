@@ -12591,19 +12591,22 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
 
 - (IBAction)renameGroup:(id)sender {
     iTermTabGroup *group = [sender representedObject];
-    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
-    alert.messageText = @"Rename Group";
-    alert.informativeText = @"Enter a name for this tab group:";
-    [alert addButtonWithTitle:@"OK"];
-    [alert addButtonWithTitle:@"Cancel"];
-    NSTextField *input = [[[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 200, 24)] autorelease];
-    input.stringValue = group.name ?: @"";
-    alert.accessoryView = input;
-    if ([alert runModal] == NSAlertFirstButtonReturn) {
-        NSString *name = input.stringValue;
-        group.name = name.length > 0 ? name : nil;
-        [self updateTabBar];
+    PSMTabBarCell *headerCell = nil;
+    for (PSMTabBarCell *cell in [_contentView.tabBarControl displayCells]) {
+        if (cell.isGroupHeader && cell.groupIdentifier == group) {
+            headerCell = cell;
+            break;
+        }
     }
+    if (headerCell) {
+        [_contentView.tabBarControl beginRenamingGroupHeaderCell:headerCell];
+    }
+}
+
+- (void)tabView:(NSTabView *)tabView didRenameGroup:(id)groupIdentifier to:(NSString *)newName {
+    iTermTabGroup *group = groupIdentifier;
+    group.name = newName.length > 0 ? newName : nil;
+    [self updateTabBar];
 }
 
 - (IBAction)toggleCollapseGroup:(id)sender {
