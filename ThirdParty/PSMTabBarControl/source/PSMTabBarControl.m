@@ -2635,6 +2635,14 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
     }
 }
 
+- (NSTabViewItem *)tabView:(NSTabView *)aTabView
+    preferredReplacementForTabViewItem:(NSTabViewItem *)tabViewItem {
+    if ([[self delegate] respondsToSelector:@selector(tabView:preferredReplacementForTabViewItem:)]) {
+        return [[self delegate] tabView:aTabView preferredReplacementForTabViewItem:tabViewItem];
+    }
+    return nil;
+}
+
 
 - (void)tabView:(NSTabView *)aTabView didSelectTabViewItem:(NSTabViewItem *)tabViewItem {
     // here's a weird one - this message is sent before the "aDidChangeNumberOfTabViewItems"

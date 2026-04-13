@@ -6916,6 +6916,32 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     }
 }
 
+- (NSTabViewItem *)tabView:(NSTabView *)tabView
+    preferredReplacementForTabViewItem:(NSTabViewItem *)tabViewItem {
+    PTYTab *closingTab = [tabViewItem identifier];
+    iTermTabGroup *group = closingTab.tabGroup;
+    if (!group) {
+        return nil;
+    }
+
+    NSArray<PTYTab *> *groupTabs = group.tabs;
+    NSUInteger indexInGroup = [groupTabs indexOfObject:closingTab];
+    if (indexInGroup == NSNotFound || groupTabs.count <= 1) {
+        // Last member; group will be destroyed. Use default selection.
+        return nil;
+    }
+
+    PTYTab *replacement;
+    if (indexInGroup > 0) {
+        // Select previous sibling (up).
+        replacement = groupTabs[indexInGroup - 1];
+    } else {
+        // First in group; select next sibling (down).
+        replacement = groupTabs[indexInGroup + 1];
+    }
+    return replacement.tabViewItem;
+}
+
 - (void)tabView:(NSTabView *)tabView willRemoveTabViewItem:(NSTabViewItem *)tabViewItem {
     // Remove tab from its group when closing or moving.
     PTYTab *tab = [tabViewItem identifier];

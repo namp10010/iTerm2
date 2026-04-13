@@ -101,8 +101,17 @@ const NSUInteger kAllModifiers = (NSEventModifierFlagControl |
 }
 
 - (void)removeTabViewItem:(NSTabViewItem *)tabViewItemToRemove {
-    // Let our delegate know.
     id<PSMTabViewDelegate> delegate = self.delegate;
+
+    // Query for group-aware replacement BEFORE willRemove mutates group state.
+    NSTabViewItem *preferredReplacement = nil;
+    if (self.selectedTabViewItem == tabViewItemToRemove &&
+        [delegate respondsToSelector:@selector(tabView:preferredReplacementForTabViewItem:)]) {
+        preferredReplacement = [delegate tabView:self
+                preferredReplacementForTabViewItem:tabViewItemToRemove];
+    }
+
+    // Let our delegate know.
     if ([delegate conformsToProtocol:@protocol(PSMTabViewDelegate)]) {
         [delegate tabView:self willRemoveTabViewItem:tabViewItemToRemove];
     }
@@ -110,20 +119,24 @@ const NSUInteger kAllModifiers = (NSEventModifierFlagControl |
     [_tabViewItemsInMRUOrder removeObject:tabViewItemToRemove];
 
     if (self.selectedTabViewItem == tabViewItemToRemove) {
-        NSArray<NSTabViewItem *> *items = self.tabViewItems;
-        NSInteger index = [items indexOfObject:tabViewItemToRemove];
-        if (index != NSNotFound) {
-            if (![iTermAdvancedSettingsModel moveLeftAfterClosingTab]) {
-                // Select the next tab to the right if possible
-                if (index + 1 < items.count) {
-                    [self selectTabViewItem:items[index + 1]];
-                }
-            } else {
-                // Select the next tab to the left if possible
-                if (index == 0 && items.count > 1) {
-                    [self selectTabViewItem:items[1]];
-                } else if (index > 0) {
-                    [self selectTabViewItem:items[index - 1]];
+        if (preferredReplacement) {
+            [self selectTabViewItem:preferredReplacement];
+        } else {
+            NSArray<NSTabViewItem *> *items = self.tabViewItems;
+            NSInteger index = [items indexOfObject:tabViewItemToRemove];
+            if (index != NSNotFound) {
+                if (![iTermAdvancedSettingsModel moveLeftAfterClosingTab]) {
+                    // Select the next tab to the right if possible
+                    if (index + 1 < items.count) {
+                        [self selectTabViewItem:items[index + 1]];
+                    }
+                } else {
+                    // Select the next tab to the left if possible
+                    if (index == 0 && items.count > 1) {
+                        [self selectTabViewItem:items[1]];
+                    } else if (index > 0) {
+                        [self selectTabViewItem:items[index - 1]];
+                    }
                 }
             }
         }

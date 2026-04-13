@@ -77,6 +77,9 @@ extern PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider;  // id<P
 - (NSDragOperation)tabView:(NSTabView *)tabView draggingEnteredTabBarForSender:(id<NSDraggingInfo>)sender;
 - (BOOL)tabView:(NSTabView *)tabView shouldAcceptDragFromSender:(id<NSDraggingInfo>)sender;
 - (NSTabViewItem *)tabView:(NSTabView *)tabView unknownObjectWasDropped:(id <NSDraggingInfo>)sender;
+@optional
+- (nullable NSTabViewItem *)tabView:(NSTabView *)tabView
+    preferredReplacementForTabViewItem:(NSTabViewItem *)tabViewItem;
 @end
 
 // These methods are KVO-observed.
@@ -165,6 +168,8 @@ extern PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider;  // id<P
 - (NSMenu *)tabView:(NSTabView *)tabView menuForGroupHeaderCell:(PSMTabBarCell *)cell;
 - (void)tabView:(NSTabView *)tabView toggleCollapseForGroup:(id)groupIdentifier;
 - (void)tabView:(NSTabView *)tabView didRenameGroup:(id)groupIdentifier to:(NSString *)newName;
+- (nullable NSTabViewItem *)tabView:(NSTabView *)tabView
+    preferredReplacementForTabViewItem:(NSTabViewItem *)tabViewItem;
 
 @end
 
