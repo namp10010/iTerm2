@@ -269,6 +269,7 @@ extern NSString *const iTermAdvancedSettingsDidChange;
 + (double)minimalEdgeDragSize;
 + (double)minimalSelectedTabUnderlineProminence;
 + (double)minimalSplitPaneDividerProminence;
++ (double)minimalTabDividerProminence;
 + (double)minimalTabStyleBackgroundColorDifference;
 + (BOOL)minimalTabStyleTreatLeftInsetAsPartOfFirstTab;
 + (double)minimalTabStyleOutlineStrength;

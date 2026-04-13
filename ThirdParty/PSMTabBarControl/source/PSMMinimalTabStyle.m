@@ -585,6 +585,28 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
 
     const BOOL horizontalOrientation = bar.orientation == PSMTabBarHorizontalOrientation;
 
+    // Draw dividers between tabs when enabled.
+    CGFloat dividerProminence = [iTermAdvancedSettingsModel minimalTabDividerProminence];
+    if (dividerProminence > 0) {
+        CGFloat backgroundBrightness = self.tabBarColor.it_hspBrightness;
+        CGFloat value = (backgroundBrightness < 0.5) ? 1 : 0;
+        [[NSColor colorWithWhite:value alpha:dividerProminence] set];
+        for (PSMTabBarCell *cell in bar.cells) {
+            if ([cell isInOverflowMenu] || cell.isGroupHeader) {
+                continue;
+            }
+            if (horizontalOrientation) {
+                CGFloat x = NSMaxX(cell.frame);
+                NSRectFillUsingOperation(NSMakeRect(x, 1, 1, cell.frame.size.height - 1),
+                                         NSCompositingOperationSourceOver);
+            } else {
+                CGFloat y = NSMaxY(cell.frame) - 1;
+                NSRectFillUsingOperation(NSMakeRect(NSMinX(cell.frame) + 1, y, cell.frame.size.width - 2, 1),
+                                         NSCompositingOperationSourceOver);
+            }
+        }
+    }
+
     const NSInteger selectedIndex = [self selectedIndex:bar];
     const NSInteger numberOfVisibleCells = [self numberOfVisibleCells:bar];
 
