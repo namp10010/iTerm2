@@ -12280,13 +12280,16 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
                               didMakeSession:nil
                                   completion:nil];
     } else {
-        [destinationTerminal openTabWithArrangement:theTab.arrangementForDuplication
-                                              named:nil
-                                    hasFlexibleView:theTab.isTmuxTab
-                                            viewMap:nil
-                                         sessionMap:nil
-                                 partialAttachments:nil
-                                            options:@{ PTYSessionArrangementOptionsForDuplication: @YES }];
+        PTYTab *newTab = [destinationTerminal openTabWithArrangement:theTab.arrangementForDuplication
+                                                               named:nil
+                                                     hasFlexibleView:theTab.isTmuxTab
+                                                             viewMap:nil
+                                                          sessionMap:nil
+                                                  partialAttachments:nil
+                                                             options:@{ PTYSessionArrangementOptionsForDuplication: @YES }];
+        if (newTab && theTab.tabGroup && destinationTerminal == self) {
+            [self addTab:newTab toGroup:theTab.tabGroup];
+        }
     }
 }
 
