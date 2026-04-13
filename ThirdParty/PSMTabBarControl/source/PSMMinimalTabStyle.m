@@ -393,14 +393,18 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
 - (void)drawInteriorWithTabCell:(PSMTabBarCell *)cell
                          inView:(NSView *)controlView
                 highlightAmount:(CGFloat)highlightAmount {
-    const CGFloat extraPadding = 2;
-    NSRect saved = cell.frame;
-    NSRect adjusted = saved;
-    adjusted.origin.x += extraPadding;
-    adjusted.size.width -= extraPadding;
-    cell.frame = adjusted;
+    if (cell.groupColor && self.orientation == PSMTabBarVerticalOrientation) {
+        const CGFloat extraPadding = 3.0;  // matches vertical guideline width
+        NSRect saved = cell.frame;
+        NSRect adjusted = saved;
+        adjusted.origin.x += extraPadding;
+        adjusted.size.width -= extraPadding;
+        cell.frame = adjusted;
+        [super drawInteriorWithTabCell:cell inView:controlView highlightAmount:highlightAmount];
+        cell.frame = saved;
+        return;
+    }
     [super drawInteriorWithTabCell:cell inView:controlView highlightAmount:highlightAmount];
-    cell.frame = saved;
 }
 
 - (NSEdgeInsets)backgroundInsetsWithHorizontalOrientation:(BOOL)horizontal {
