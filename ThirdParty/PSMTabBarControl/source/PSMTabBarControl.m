@@ -2151,7 +2151,7 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                 _pendingCollapseGroup = cell.groupIdentifier;
                 [self performSelector:@selector(performGroupCollapse:)
                            withObject:cell.groupIdentifier
-                           afterDelay:0.15];
+                           afterDelay:0.2];
             }
             return;
         }
@@ -3131,26 +3131,29 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
         textRect = NSInsetRect(frame, 18, 2);
     }
     NSFont *font = [NSFont systemFontOfSize:10 weight:NSFontWeightMedium];
+
     NSTextField *field = [[NSTextField alloc] initWithFrame:textRect];
     field.font = font;
     field.stringValue = cell.groupName ?: @"";
     field.bordered = NO;
-    field.drawsBackground = YES;
-    field.backgroundColor = [NSColor controlBackgroundColor];
+    field.drawsBackground = NO;
     field.focusRingType = NSFocusRingTypeNone;
     field.editable = YES;
     field.selectable = YES;
     field.delegate = (id)self;
     field.cell.scrollable = YES;
     field.cell.usesSingleLineMode = YES;
+    field.autoresizingMask = 0;
 
-    // Size to fit the font, then centre vertically in the cell.
     [field sizeToFit];
     CGFloat fitHeight = NSHeight(field.frame);
-    CGFloat cellMidY = NSMidY(cell.frame);
-    [field setFrame:NSMakeRect(textRect.origin.x, cellMidY - fitHeight / 2,
-                               textRect.size.width, fitHeight)];
+    NSRect fieldFrame = NSMakeRect(textRect.origin.x,
+                                   NSMidY(textRect) - fitHeight / 2.0,
+                                   textRect.size.width,
+                                   fitHeight);
+    [field setFrame:fieldFrame];
 
+    _groupRenameCell.groupNameEditing = YES;
     _groupRenameField = field;
     _groupRenameReady = NO;
     [self addSubview:_groupRenameField];
@@ -3182,7 +3185,12 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
     } else {
         textRect = NSInsetRect(_groupRenameCell.frame, 18, 2);
     }
-    [_groupRenameField setFrame:textRect];
+    CGFloat fitHeight = NSHeight(_groupRenameField.frame);
+    NSRect fieldFrame = NSMakeRect(textRect.origin.x,
+                                   NSMidY(textRect) - fitHeight / 2.0,
+                                   textRect.size.width,
+                                   fitHeight);
+    [_groupRenameField setFrame:fieldFrame];
 }
 
 - (void)commitGroupRename {
@@ -3212,6 +3220,7 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
     [_groupRenameField removeFromSuperview];
     [_groupRenameField release];
     _groupRenameField = nil;
+    _groupRenameCell.groupNameEditing = NO;
     _groupRenameCell = nil;
     [_groupRenameOriginalName release];
     _groupRenameOriginalName = nil;

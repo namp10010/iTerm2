@@ -475,8 +475,8 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
         color.withAlphaComponent(0.8).set()
         chevron.fill()
 
-        // Draw name text.
-        if let name = cell.groupName, !name.isEmpty {
+        // Draw name text (skip when inline rename field is active).
+        if let name = cell.groupName, !name.isEmpty, !cell.groupNameEditing {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 10, weight: .medium),
                 .foregroundColor: Self.textColorDefaultSelected(false,
@@ -486,8 +486,13 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
             let textX = chevronX + 10
             let textWidth = pillRect.maxX - textX - 4
             if textWidth > 0 {
-                let textRect = NSRect(x: textX, y: pillRect.origin.y + 2,
+                let availRect = NSRect(x: textX, y: pillRect.origin.y + 2,
                                        width: textWidth, height: pillRect.height - 4)
+                let textSize = name.size(withAttributes: attrs)
+                let textRect = NSRect(x: availRect.origin.x,
+                                       y: availRect.midY - textSize.height / 2.0,
+                                       width: availRect.width,
+                                       height: textSize.height)
                 name.draw(in: textRect, withAttributes: attrs)
             }
         }

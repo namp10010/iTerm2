@@ -67,6 +67,7 @@
 @property(nonatomic, retain) NSColor *groupColor;
 @property(nonatomic, assign) BOOL groupCollapsed;
 @property(nonatomic, assign) NSInteger groupMemberCount;
+@property(nonatomic, assign) BOOL groupNameEditing;
 
 // creation/destruction
 - (id)initWithControlView:(PSMTabBarControl *)controlView;

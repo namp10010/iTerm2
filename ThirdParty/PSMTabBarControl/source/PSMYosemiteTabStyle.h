@@ -62,6 +62,7 @@ int DebugLogImpl(const char *file, int line, const char *function, NSString* val
                    highlightAmount:(CGFloat)highlightAmount
                         horizontal:(BOOL)horizontal;
 - (void)drawShadowForUnselectedTabInRect:(NSRect)backgroundRect;
+- (void)drawVerticalLineInFrame:(NSRect)rect x:(CGFloat)x;
 
 - (void)drawSubtitle:(PSMCachedTitle * _Nullable)cachedSubtitle
                    x:(CGFloat)labelPosition

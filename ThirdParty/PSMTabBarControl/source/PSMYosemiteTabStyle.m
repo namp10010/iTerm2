@@ -817,8 +817,8 @@
     [[color colorWithAlphaComponent:0.8] set];
     [chevron fill];
 
-    // Draw name text.
-    if (cell.groupName.length > 0) {
+    // Draw name text (skip when inline rename field is active).
+    if (cell.groupName.length > 0 && !cell.groupNameEditing) {
         NSDictionary *attrs = @{
             NSFontAttributeName: [NSFont systemFontOfSize:10 weight:NSFontWeightMedium],
             NSForegroundColorAttributeName: [self textColorDefaultSelected:NO
@@ -828,7 +828,12 @@
         CGFloat textX = chevronX + 10;
         CGFloat textWidth = NSMaxX(pillRect) - textX - 4;
         if (textWidth > 0) {
-            NSRect textRect = NSMakeRect(textX, pillRect.origin.y + 1, textWidth, pillRect.size.height - 2);
+            NSRect availRect = NSMakeRect(textX, pillRect.origin.y + 1, textWidth, pillRect.size.height - 2);
+            NSSize textSize = [cell.groupName sizeWithAttributes:attrs];
+            NSRect textRect = NSMakeRect(availRect.origin.x,
+                                         NSMidY(availRect) - textSize.height / 2.0,
+                                         availRect.size.width,
+                                         textSize.height);
             [cell.groupName drawInRect:textRect withAttributes:attrs];
         }
     }
