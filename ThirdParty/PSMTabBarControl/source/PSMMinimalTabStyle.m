@@ -7,6 +7,7 @@
 
 #import "PSMMinimalTabStyle.h"
 #import "PSMOverflowPopUpButton.h"
+#import "iTermAdvancedSettingsModel.h"
 
 @implementation NSColor(PSMMinimalTabStyle)
 
@@ -841,7 +842,7 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
 
     // Draw background — full bleed, square corners for minimal theme.
     NSBezierPath *bg = [NSBezierPath bezierPathWithRect:frame];
-    [[color colorWithAlphaComponent:0.3] set];
+    [[color colorWithAlphaComponent:[iTermAdvancedSettingsModel tabGroupIndicatorAlpha]] set];
     [bg fill];
 
     // Draw chevron.

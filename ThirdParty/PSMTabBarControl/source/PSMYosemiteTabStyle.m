@@ -795,7 +795,7 @@
     // Draw background pill.
     NSRect pillRect = NSInsetRect(frame, 2, 3);
     NSBezierPath *pill = [NSBezierPath bezierPathWithRoundedRect:pillRect xRadius:4 yRadius:4];
-    [[color colorWithAlphaComponent:0.3] set];
+    [[color colorWithAlphaComponent:[iTermAdvancedSettingsModel tabGroupIndicatorAlpha]] set];
     [pill fill];
 
     // Draw chevron.
@@ -896,12 +896,12 @@
     if (_orientation == PSMTabBarVerticalOrientation) {
         // Continuous left-edge guideline, matching the Chrome vertical tab group style.
         NSRect stripe = NSMakeRect(frame.origin.x, frame.origin.y, 3.0, frame.size.height);
-        [[groupColor colorWithAlphaComponent:0.3] setFill];
+        [[groupColor colorWithAlphaComponent:[iTermAdvancedSettingsModel tabGroupIndicatorAlpha]] setFill];
         NSRectFill(stripe);
     } else {
         // Bottom-edge stripe for horizontal tab bar.
         NSRect stripe = NSMakeRect(frame.origin.x, NSMaxY(frame) - 2.0, frame.size.width, 2.0);
-        [[groupColor colorWithAlphaComponent:0.3] setFill];
+        [[groupColor colorWithAlphaComponent:[iTermAdvancedSettingsModel tabGroupIndicatorAlpha]] setFill];
         NSRectFill(stripe);
     }
 }

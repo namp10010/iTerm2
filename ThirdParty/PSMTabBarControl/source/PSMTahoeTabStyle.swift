@@ -455,7 +455,7 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
         // Draw background pill.
         let pillRect = frame.insetBy(dx: 2, dy: 3)
         let pill = NSBezierPath(roundedRect: pillRect, xRadius: pillRect.height / 2, yRadius: pillRect.height / 2)
-        color.withAlphaComponent(0.3).set()
+        color.withAlphaComponent(iTermAdvancedSettingsModel.tabGroupIndicatorAlpha()).set()
         pill.fill()
 
         // Draw chevron.
@@ -569,12 +569,12 @@ class PSMTahoeTabStyle: NSObject, PSMTabStyle {
         if _orientation == .verticalOrientation {
             // Continuous left-edge guideline, matching the Chrome vertical tab group style.
             let stripe = NSRect(x: frame.minX, y: frame.minY, width: 3.0, height: frame.height)
-            groupColor.withAlphaComponent(0.3).setFill()
+            groupColor.withAlphaComponent(iTermAdvancedSettingsModel.tabGroupIndicatorAlpha()).setFill()
             stripe.fill()
         } else {
             // Bottom-edge stripe for horizontal tab bar.
             let stripe = NSRect(x: frame.minX, y: frame.maxY - 2.0, width: frame.width, height: 2.0)
-            groupColor.withAlphaComponent(0.3).setFill()
+            groupColor.withAlphaComponent(iTermAdvancedSettingsModel.tabGroupIndicatorAlpha()).setFill()
             stripe.fill()
         }
     }
