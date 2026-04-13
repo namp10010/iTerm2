@@ -9,6 +9,12 @@
 #import "PSMOverflowPopUpButton.h"
 #import "iTermAdvancedSettingsModel.h"
 
+@interface PSMYosemiteTabStyle (Private)
+- (void)drawInteriorWithTabCell:(PSMTabBarCell *)cell
+                         inView:(NSView *)controlView
+                highlightAmount:(CGFloat)highlightAmount;
+@end
+
 @implementation NSColor(PSMMinimalTabStyle)
 
 - (NSColor *)psm_nonSelectedColorWithDifference:(double)difference {
@@ -382,6 +388,19 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     insetCellFrame.size.width -= (insets.left + insets.right);
     insetCellFrame.size.height -= (insets.top + insets.bottom);
     [super drawCellBackgroundSelected:selected inRect:insetCellFrame withTabColor:tabColor highlightAmount:highlightAmount horizontal:horizontal];
+}
+
+- (void)drawInteriorWithTabCell:(PSMTabBarCell *)cell
+                         inView:(NSView *)controlView
+                highlightAmount:(CGFloat)highlightAmount {
+    const CGFloat extraPadding = 2;
+    NSRect saved = cell.frame;
+    NSRect adjusted = saved;
+    adjusted.origin.x += extraPadding;
+    adjusted.size.width -= extraPadding;
+    cell.frame = adjusted;
+    [super drawInteriorWithTabCell:cell inView:controlView highlightAmount:highlightAmount];
+    cell.frame = saved;
 }
 
 - (NSEdgeInsets)backgroundInsetsWithHorizontalOrientation:(BOOL)horizontal {
