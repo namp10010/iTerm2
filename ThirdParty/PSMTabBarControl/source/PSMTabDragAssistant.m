@@ -1244,20 +1244,20 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
             NSRect overCellRect;
             PSMTabBarCell *overCell = [control cellForPoint:mouseLoc cellFrame:&overCellRect];
 
-            // Track whether the hovered cell belongs to a group.  This is used at
-            // drop time to decide group membership: hovering on a group header or
-            // member means "drop into the group"; hovering on an ungrouped tab
-            // means "drop outside the group" even if the placeholder is the same.
+            // Track whether the hovered cell belongs to a group.  This is used
+            // by the animation loop to decide placeholder placement: when NO,
+            // the placeholder is swapped before the header (drop slot above the
+            // group); when YES, it stays after the header (slot inside the group).
             //
-            // Only headers and real tab cells update the flag.  Placeholders are
-            // "transparent" — they keep the previous value, reflecting the
-            // approach direction.  This prevents oscillation (the displaced PH
-            // after a header has nil groupColor) and correctly distinguishes
-            // "coming from above" (NO) vs "coming from the header" (YES) when
-            // the mouse lands on the same placeholder.
+            // Group headers set NO — hovering on a header means "drop before
+            // this group".  Real member tabs set YES/NO based on groupColor.
+            // Placeholders are "transparent" — they keep the previous value,
+            // reflecting the approach direction.  This prevents oscillation
+            // (the displaced PH after a header has nil groupColor) and correctly
+            // distinguishes "coming from above" vs "coming from a member".
             if (overCell != nil) {
                 if ([overCell isGroupHeader]) {
-                    _targetInsideGroup = YES;
+                    _targetInsideGroup = NO;
                 } else if (![overCell isPlaceholder]) {
                     _targetInsideGroup = ([overCell groupColor] != nil);
                 }
@@ -1280,7 +1280,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                     for (NSUInteger j = headerIdx + 1; j < displayCells.count; j++) {
                         PSMTabBarCell *candidate = [displayCells objectAtIndex:j];
                         if ([candidate isGroupHeader]) {
-                            break;
+                            continue;
                         }
                         if ([candidate isPlaceholder]) {
                             proposedTarget = candidate;
