@@ -80,6 +80,7 @@ extern PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider;  // id<P
 @optional
 - (nullable NSTabViewItem *)tabView:(NSTabView *)tabView
     preferredReplacementForTabViewItem:(NSTabViewItem *)tabViewItem;
+- (BOOL)tabView:(NSTabView *)tabView shouldSkipTabViewItem:(NSTabViewItem *)tabViewItem;
 @end
 
 // These methods are KVO-observed.

@@ -176,48 +176,78 @@ const NSUInteger kAllModifiers = (NSEventModifierFlagControl |
     [self selectTabViewItemWithIdentifier:[sender representedObject]];
 }
 
+- (BOOL)shouldSkipTabViewItem:(NSTabViewItem *)item {
+    id<PSMTabViewDelegate> d = self.delegate;
+    if ([d respondsToSelector:@selector(tabView:shouldSkipTabViewItem:)]) {
+        return [d tabView:self shouldSkipTabViewItem:item];
+    }
+    return NO;
+}
+
 - (void)previousTab:(id)sender {
-    NSTabViewItem *tabViewItem = [self selectedTabViewItem];
-    [self selectPreviousTabViewItem:sender];
-    if (tabViewItem == [self selectedTabViewItem]) {
-        [self selectTabViewItemAtIndex:[self numberOfTabViewItems] - 1];
+    NSArray<NSTabViewItem *> *items = self.tabViewItems;
+    NSInteger count = items.count;
+    if (count == 0) {
+        return;
+    }
+    NSInteger currentIndex = [items indexOfObject:[self selectedTabViewItem]];
+    if (currentIndex == NSNotFound) {
+        return;
+    }
+    for (NSInteger i = 1; i <= count; i++) {
+        NSInteger candidateIndex = (currentIndex - i + count) % count;
+        NSTabViewItem *candidate = items[candidateIndex];
+        if (![self shouldSkipTabViewItem:candidate]) {
+            [self selectTabViewItem:candidate];
+            return;
+        }
     }
 }
 
 - (void)nextTab:(id)sender {
-    NSTabViewItem *tabViewItem = [self selectedTabViewItem];
-    [self selectNextTabViewItem:sender];
-    if (tabViewItem == [self selectedTabViewItem]) {
-        [self selectTabViewItemAtIndex:0];
+    NSArray<NSTabViewItem *> *items = self.tabViewItems;
+    NSInteger count = items.count;
+    if (count == 0) {
+        return;
+    }
+    NSInteger currentIndex = [items indexOfObject:[self selectedTabViewItem]];
+    if (currentIndex == NSNotFound) {
+        return;
+    }
+    for (NSInteger i = 1; i <= count; i++) {
+        NSInteger candidateIndex = (currentIndex + i) % count;
+        NSTabViewItem *candidate = items[candidateIndex];
+        if (![self shouldSkipTabViewItem:candidate]) {
+            [self selectTabViewItem:candidate];
+            return;
+        }
     }
 }
 
 - (void)cycleForwards:(BOOL)forwards {
-    if ([_tabViewItemsInMRUOrder count] == 0) {
+    NSInteger count = [_tabViewItemsInMRUOrder count];
+    if (count == 0) {
         return;
     }
-    NSTabViewItem* tabViewItem = [self selectedTabViewItem];
-    NSUInteger theIndex = [_tabViewItemsInMRUOrder indexOfObject:tabViewItem];
+    NSTabViewItem *current = [self selectedTabViewItem];
+    NSInteger theIndex = [_tabViewItemsInMRUOrder indexOfObject:current];
     if (theIndex == NSNotFound) {
         theIndex = 0;
     }
-    if (forwards) {
-        theIndex++;
-        if (theIndex >= [_tabViewItemsInMRUOrder count]) {
-            theIndex = 0;
+    for (NSInteger i = 0; i < count; i++) {
+        if (forwards) {
+            theIndex = (theIndex + 1) % count;
+        } else {
+            theIndex = (theIndex - 1 + count) % count;
         }
-    } else {
-        NSInteger temp = theIndex;
-        temp--;
-        if (temp < 0) {
-            temp = [_tabViewItemsInMRUOrder count] - 1;
+        NSTabViewItem *candidate = _tabViewItemsInMRUOrder[theIndex];
+        if (![self shouldSkipTabViewItem:candidate]) {
+            // The MRU order won't be changed by cycling until you let up the modifier key in
+            // cycleFlagsChanged:.
+            [self selectTabViewItem:candidate];
+            return;
         }
-        theIndex = temp;
     }
-    NSTabViewItem* next = _tabViewItemsInMRUOrder[theIndex];
-    // The MRU order won't be changed by cycling until you let up the modifier key in
-    // cycleFlagsChanged:.
-    [self selectTabViewItem:next];
 }
 
 - (void)cycleKeyDownWithModifiers:(NSUInteger)modifierFlags forwards:(BOOL)forwards {

@@ -2643,6 +2643,19 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
     return nil;
 }
 
+- (BOOL)tabView:(NSTabView *)tabView shouldSkipTabViewItem:(NSTabViewItem *)tabViewItem {
+    if (![_delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
+        return NO;
+    }
+    id group = [_delegate tabGroupForTabViewItem:tabViewItem];
+    if (!group) {
+        return NO;
+    }
+    if (![_delegate respondsToSelector:@selector(isGroupCollapsed:)]) {
+        return NO;
+    }
+    return [_delegate isGroupCollapsed:group];
+}
 
 - (void)tabView:(NSTabView *)aTabView didSelectTabViewItem:(NSTabViewItem *)tabViewItem {
     // here's a weird one - this message is sent before the "aDidChangeNumberOfTabViewItems"
