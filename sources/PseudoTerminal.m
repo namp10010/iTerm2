@@ -6945,11 +6945,12 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
 - (void)tabView:(NSTabView *)tabView willRemoveTabViewItem:(NSTabViewItem *)tabViewItem {
     // Remove tab from its group when closing or moving.
     PTYTab *tab = [tabViewItem identifier];
-    if (tab.tabGroup) {
-        [tab.tabGroup removeTab:tab];
+    iTermTabGroup *group = tab.tabGroup;
+    if (group) {
+        [group removeTab:tab];
         // Check if group is now empty.
-        if ([tab.tabGroup isEmpty]) {
-            [_tabGroups removeObject:tab.tabGroup];
+        if ([group isEmpty]) {
+            [_tabGroups removeObject:group];
         }
     }
     [self saveAffinitiesLater:[tabViewItem identifier]];
