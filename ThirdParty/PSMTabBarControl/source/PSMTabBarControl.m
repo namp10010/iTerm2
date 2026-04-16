@@ -1170,6 +1170,8 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     [_displayCells removeAllObjects];
     id currentGroup = nil;
     BOOL currentGroupCollapsed = NO;
+    PSMTabBarCell *currentHeader = nil;
+    NSInteger collapsedProcessingCount = 0;
     for (PSMTabBarCell *cell in _cells) {
         id group = nil;
         if ([_delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
@@ -1180,6 +1182,10 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             group = cell.groupIdentifier;
         }
         if (group != nil && group != currentGroup) {
+            // Finalise processing count for the previous collapsed group header.
+            currentHeader.groupMemberCount = collapsedProcessingCount;
+            currentHeader = nil;
+            collapsedProcessingCount = 0;
             // Entering a new group — insert a header cell.
             // Skip the header when this group is being dragged as a unit;
             // the header travels with the drag image instead.
@@ -1215,9 +1221,7 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                 if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
                     header.groupColor = [_delegate colorForGroup:group];
                 }
-                if ([_delegate respondsToSelector:@selector(memberCountForGroup:)]) {
-                    header.groupMemberCount = [_delegate memberCountForGroup:group];
-                }
+                currentHeader = header;
                 // If the last cell in _displayCells is a placeholder (the slot that sits
                 // just before this group's first member in tabCells during drag), move
                 // it to after the header.  This ensures the drop slot opens visually
@@ -1234,6 +1238,10 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                 }
             }
         } else if (group == nil && !cell.isPlaceholder) {
+            // Finalise processing count for the previous collapsed group header.
+            currentHeader.groupMemberCount = collapsedProcessingCount;
+            currentHeader = nil;
+            collapsedProcessingCount = 0;
             // Only exit the current group when a real (non-placeholder) ungrouped
             // tab is encountered.  Placeholder cells interleaved during drag must
             // not reset group tracking, otherwise duplicate headers appear.
@@ -1242,6 +1250,9 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         }
         // Skip collapsed group members.
         if (currentGroupCollapsed) {
+            if (cell.isProcessing) {
+                collapsedProcessingCount++;
+            }
             // Remove spinner so it doesn't remain visible when group is collapsed.
             if ([[self subviews] containsObject:[cell indicator]]) {
                 [[cell indicator] removeFromSuperview];
@@ -1261,6 +1272,8 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         }
         [_displayCells addObject:cell];
     }
+    // Finalise processing count for the last collapsed group header.
+    currentHeader.groupMemberCount = collapsedProcessingCount;
     // Prune stale header cache entries.
     NSMutableSet *activeGroupIds = [NSMutableSet set];
     for (PSMTabBarCell *cell in _displayCells) {
@@ -2814,6 +2827,8 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
 - (void)setIsProcessing:(BOOL)isProcessing forTabWithIdentifier:(id)identifier {
     PSMTabBarCell *cell = [self cellWithIdentifier:identifier];
     cell.isProcessing = isProcessing;
+    [self rebuildDisplayCells];
+    [self setNeedsDisplay:YES];
 }
 
 - (void)setProgress:(PSMProgress)progress forTabWithIdentifier:(id)identifier {
