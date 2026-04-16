@@ -1071,13 +1071,15 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     [_tabView setDelegate:nil];
     [theItem retain];
     [_tabView removeTabViewItem:theItem];
-    [_tabView insertTabViewItem:theItem atIndex:destIndex];
+    // Clamp destIndex after removal so it does not exceed the new count.
+    NSInteger clampedDest = MIN(destIndex, [_tabView numberOfTabViewItems]);
+    [_tabView insertTabViewItem:theItem atIndex:clampedDest];
     [theItem release];
 
     id cell = [_cells objectAtIndex:sourceIndex];
     [cell retain];
     [_cells removeObjectAtIndex:sourceIndex];
-    [_cells insertObject:cell atIndex:destIndex];
+    [_cells insertObject:cell atIndex:clampedDest];
     [cell release];
 
     [_tabView setDelegate:tempDelegate];
@@ -1387,8 +1389,24 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     return pinnedWidth + pinnedSpacing;
 }
 
+- (CGFloat)totalGroupHeaderSpaceInDisplayCells {
+    CGFloat total = 0;
+    NSUInteger count = 0;
+    for (PSMTabBarCell *cell in _displayCells) {
+        if (cell.isGroupHeader) {
+            total += [_style desiredWidthOfGroupHeaderCell:cell];
+            count++;
+        }
+    }
+    if (count > 0) {
+        total += count * _style.intercellSpacing;
+    }
+    return total;
+}
+
 - (NSArray<NSNumber *> *)variableCellWidthsWithOverflow:(BOOL)withOverflow {
-    const CGFloat availableWidth = [self availableCellWidthWithOverflow:withOverflow];
+    const CGFloat headerSpace = _displayCells.count > 0 ? [self totalGroupHeaderSpaceInDisplayCells] : 0;
+    const CGFloat availableWidth = [self availableCellWidthWithOverflow:withOverflow] - headerSpace;
     CGFloat totalDesiredWidth = 0.0;
     NSMutableArray *desiredWidths = [NSMutableArray array];
     for (PSMTabBarCell *cell in _cells) {
@@ -1415,7 +1433,8 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 }
 
 - (BOOL)shouldUseOptimalWidthWithOverflow:(BOOL)withOverflow {
-    const CGFloat availableWidth = [self availableCellWidthWithOverflow:withOverflow];
+    const CGFloat headerSpace = _displayCells.count > 0 ? [self totalGroupHeaderSpaceInDisplayCells] : 0;
+    const CGFloat availableWidth = [self availableCellWidthWithOverflow:withOverflow] - headerSpace;
     const NSUInteger pinnedCount = [self numberOfPinnedCells];
     const NSUInteger unpinnedCount = _cells.count - pinnedCount;
     const CGFloat pinnedSpace = [self totalPinnedSpaceForPinnedCount:pinnedCount unpinnedCount:unpinnedCount];
@@ -1425,8 +1444,38 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 }
 
 - (NSArray<NSNumber *> *)cellWidthsForHorizontalArrangementWithOverflow:(BOOL)withOverflow {
+    // Compute tab-only widths first, then interleave group header widths
+    // to produce an array indexed 1:1 with _displayCells (or _cells if no
+    // display cells).
+    NSArray<NSNumber *> *tabWidths = [self tabOnlyWidthsForHorizontalArrangementWithOverflow:withOverflow];
+    if (_displayCells.count == 0) {
+        return tabWidths;
+    }
+    // Build result in _displayCells order, inserting header widths at the
+    // correct positions.
+    NSMutableArray<NSNumber *> *result = [NSMutableArray arrayWithCapacity:_displayCells.count];
+    NSUInteger tabIndex = 0;
+    for (PSMTabBarCell *cell in _displayCells) {
+        if (cell.isGroupHeader) {
+            [result addObject:@([_style desiredWidthOfGroupHeaderCell:cell])];
+        } else {
+            if (tabIndex < tabWidths.count) {
+                [result addObject:tabWidths[tabIndex]];
+                tabIndex++;
+            } else {
+                continue;  // Tab overflowed; keep processing remaining headers.
+            }
+        }
+    }
+    return result;
+}
+
+// Compute widths for real tab cells only (no group headers), using
+// available width reduced by group header space.
+- (NSArray<NSNumber *> *)tabOnlyWidthsForHorizontalArrangementWithOverflow:(BOOL)withOverflow {
     const NSUInteger cellCount = _cells.count;
-    const CGFloat availableWidth = [self availableCellWidthWithOverflow:withOverflow];
+    const CGFloat headerSpace = _displayCells.count > 0 ? [self totalGroupHeaderSpaceInDisplayCells] : 0;
+    const CGFloat availableWidth = [self availableCellWidthWithOverflow:withOverflow] - headerSpace;
     const CGFloat intercellSpacing = _style.intercellSpacing;
     const NSUInteger pinnedCount = [self numberOfPinnedCells];
     const NSUInteger unpinnedCount = cellCount - pinnedCount;
@@ -1501,9 +1550,8 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         }
     }
 
-    // Build the result array.  _setupCells: maps result[i] to _cells[i], so the
-    // array must be a contiguous prefix of _cells.  Once any cell doesn't fit we
-    // must stop; everything after that goes to the overflow menu.
+    // Build the result array.  Once any cell doesn't fit we must stop;
+    // everything after that goes to the overflow menu.
     NSMutableArray<NSNumber *> *result = [NSMutableArray array];
     NSUInteger unpinnedIndex = 0;
     CGFloat usedWidth = 0;
@@ -1584,22 +1632,25 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 
 - (void)_animateCells:(NSTimer *)timer {
     NSArray *targetWidths = [timer userInfo];
+    // Iterate _displayCells (which includes group headers) so that header
+    // frames are updated during animation, not just after it finishes.
+    NSArray<PSMTabBarCell *> *sourceCells = _displayCells.count > 0 ? _displayCells : _cells;
     int i, numberOfVisibleCells = [targetWidths count];
     float totalChange = 0.0f;
     BOOL updated = NO;
 
-    if ([_cells count] > 0) {
+    if (sourceCells.count > 0) {
         //compare our target widths with the current widths and move towards the target
-        for (i = 0; i < [_cells count]; i++) {
-            PSMTabBarCell *currentCell = [_cells objectAtIndex:i];
+        for (i = 0; i < (int)sourceCells.count; i++) {
+            PSMTabBarCell *currentCell = sourceCells[i];
             NSRect cellFrame = [currentCell frame];
             cellFrame.origin.x += totalChange;
 
             if (i < numberOfVisibleCells) {
                 float target = [[targetWidths objectAtIndex:i] floatValue];
 
-                if (currentCell.isPinned) {
-                    // Pinned cells snap to target width immediately - no gradual animation.
+                if (currentCell.isGroupHeader || currentCell.isPinned) {
+                    // Group headers and pinned cells snap to target width immediately.
                     totalChange += target - cellFrame.size.width;
                     cellFrame.size.width = target;
                     [currentCell setFrame:cellFrame];
