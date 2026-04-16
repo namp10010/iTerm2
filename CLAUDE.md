@@ -4,6 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build and Test Commands
 
+- When in a new worktree, init all git submodules before building: `git submodule update --init --recursive`
 - `make run` -- build Development config and launch the app
 - `tools/build.sh` (or `tools/build.sh Development`) -- debug build only, logs to `tmp/build.log`
 - `make test` -- run all unit tests
