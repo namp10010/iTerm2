@@ -1242,6 +1242,10 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
         }
         // Skip collapsed group members.
         if (currentGroupCollapsed) {
+            // Remove spinner so it doesn't remain visible when group is collapsed.
+            if ([[self subviews] containsObject:[cell indicator]]) {
+                [[cell indicator] removeFromSuperview];
+            }
             continue;
         }
         // Set group colour on cells for rendering.  Use currentGroup (not the
