@@ -256,7 +256,7 @@ TAGS:
 	find . -name "*.[mhMH]" -exec etags -o ./TAGS -a '{}' +
 
 install: | Deployment backup-old-iterm
-	cp -R $(BUILD_DIR)/Deployment/iTerm2.app $(APPS)
+	cp -R $(BUILD_DIR)/Deployment/iTerm2.app $(APPS)/iTerm.app
 
 Development:
 	echo "Using PATH for build: $(PATH)"
@@ -304,10 +304,10 @@ clean:
 	git checkout last-xcode-version
 
 backup-old-iterm:
-	if [[ -d $(APPS)/iTerm2.app.bak ]] ; then rm -fr $(APPS)/iTerm2.app.bak ; fi
-	if [[ -d $(APPS)/iTerm2.app ]] ; then \
-	/bin/mv $(APPS)/iTerm2.app $(APPS)/iTerm2.app.bak ;\
-	 cp $(ITERM_CONF_PLIST) $(APPS)/iTerm2.app.bak/Contents/ ; \
+	if [[ -d $(APPS)/iTerm.app.bak ]] ; then rm -fr $(APPS)/iTerm.app.bak ; fi
+	if [[ -d $(APPS)/iTerm.app ]] ; then \
+	/bin/mv $(APPS)/iTerm.app $(APPS)/iTerm.app.bak ;\
+	 cp $(ITERM_CONF_PLIST) $(APPS)/iTerm.app.bak/Contents/ ; \
 	fi
 
 restart:
