@@ -345,6 +345,16 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     return [NSColor colorWithWhite:value alpha:alpha];
 }
 
+- (NSColor *)outlineColorForCell:(PSMTabBarCell *)cell {
+    if (cell && !cell.isInOverflowMenu) {
+        NSColor *override = cell.groupColor ?: cell.tabColor;
+        if (override) {
+            return override;
+        }
+    }
+    return [self outlineColor];
+}
+
 - (void)drawVerticalLineInFrame:(NSRect)rect x:(CGFloat)x {
 }
 
