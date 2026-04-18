@@ -714,7 +714,7 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(left, top)];
     [path lineToPoint:NSMakePoint(right, top)];
 
-    [[self outlineColor] set];
+    [[self outlineColorForCell:cell] set];
     [path stroke];
 }
 
@@ -740,7 +740,7 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, top)];
     [path lineToPoint:NSMakePoint(right, bottom)];
 
-    [[self outlineColor] set];
+    [[self outlineColorForCell:cell] set];
     [path stroke];
 }
 
@@ -787,7 +787,7 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(left, bottom)];
     [path lineToPoint:NSMakePoint(right, bottom)];
 
-    [[self outlineColor] set];
+    [[self outlineColorForCell:cell] set];
     [path stroke];
 }
 
@@ -813,7 +813,7 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, bottom)];
     [path lineToPoint:NSMakePoint(right, top)];
 
-    [[self outlineColor] set];
+    [[self outlineColorForCell:cell] set];
     [path stroke];
 }
 
@@ -852,7 +852,7 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, bottom)];
     [path lineToPoint:NSMakePoint(0, bottom)];
 
-    [[self outlineColor] set];
+    [[self outlineColorForCell:cell] set];
     [path stroke];
 }
 
@@ -871,7 +871,7 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, top)];
     [path lineToPoint:NSMakePoint(right, bottom)];
 
-    [[self outlineColor] set];
+    [[self outlineColorForCell:cell] set];
     [path stroke];
 }
 
