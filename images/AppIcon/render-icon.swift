@@ -79,23 +79,36 @@ func drawRobotIcon(size: Int) -> NSImage {
     let str = NSAttributedString(string: ">_", attributes: attrs)
     let textSize = str.size()
 
+    // Compute horizontal centre and target baseline in screen coords (y from top).
+    // Centre cap height vertically in the screen panel: panel_midY + capHeight/2 = baseline.
     let textOriginX: CGFloat
-    let textOriginY: CGFloat
+    let baselineScreenY: CGFloat
     if size <= 16 {
         textOriginX = (s - textSize.width) / 2
-        textOriginY = (s - textSize.height) / 2
+        baselineScreenY = s * 0.62
     } else {
-        let screenMidX = scale(24) + scale(122) / 2
-        let screenMidY = scale(42) + scale(88) / 2
-        textOriginX = screenMidX - textSize.width / 2
-        textOriginY = screenMidY - textSize.height / 2
+        textOriginX = scale(24) + scale(122) / 2 - textSize.width / 2
+        baselineScreenY = scale(86) + font.capHeight / 2
     }
-    str.draw(at: NSPoint(x: textOriginX, y: textOriginY))
 
-    // Cursor block (full detail only)
+    // NSAttributedString.draw(at:) is sensitive to the CTM flip we applied —
+    // glyphs render mirrored vertically. Undo the flip just for this call,
+    // converting the target baseline to AppKit's bottom-up coordinate system.
+    ctx.saveGState()
+    ctx.scaleBy(x: 1, y: -1)
+    ctx.translateBy(x: 0, y: -s)
+    // In AppKit bottom-up coords, draw(at:) places the baseline at the given y.
+    let appkitBaselineY = s - baselineScreenY
+    str.draw(at: NSPoint(x: textOriginX, y: appkitBaselineY))
+    ctx.restoreGState()
+
+    // Cursor block — cap-top to baseline, flush right of glyph
     if size > 32 {
         NSColor.hex("#1e3048", alpha: 0.42).setFill()
-        let cursor = NSBezierPath(roundedRect: CGRect(x: scale(115), y: scale(74), width: scale(14), height: scale(22)),
+        let cursorTop  = baselineScreenY - font.capHeight
+        let cursorLeft = textOriginX + textSize.width + scale(2)
+        let cursor = NSBezierPath(roundedRect: CGRect(x: cursorLeft, y: cursorTop,
+                                                      width: scale(12), height: font.capHeight),
                                   xRadius: scale(2.5), yRadius: scale(2.5))
         cursor.fill()
     }
