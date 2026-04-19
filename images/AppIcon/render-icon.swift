@@ -19,8 +19,7 @@ extension NSColor {
 
 func drawRobotIcon(size: Int) -> NSImage {
     let s = CGFloat(size)
-    let ref: CGFloat = 170          // reference canvas
-    let sc = s / ref                // scale factor
+    let sc = s / 170            // scale from 170×170 reference canvas
 
     func scale(_ v: CGFloat) -> CGFloat { v * sc }
 
@@ -30,88 +29,77 @@ func drawRobotIcon(size: Int) -> NSImage {
 
     let ctx = NSGraphicsContext.current!.cgContext
 
-    // Flip to top-left origin (NSImage is bottom-up)
+    // Flip to top-left origin (NSImage default is bottom-up)
     ctx.translateBy(x: 0, y: s)
     ctx.scaleBy(x: 1, y: -1)
 
-    // Background
+    // --- Background ---
     NSColor.hex("#bcc8d8").setFill()
     NSBezierPath(rect: CGRect(x: 0, y: 0, width: s, height: s)).fill()
 
-    if size > 16 {
-        // Ear bolts
-        NSColor.hex("#a8b8cc", alpha: 0.75).setFill()
-        NSBezierPath(ovalIn: CGRect(x: scale(14)-scale(7), y: scale(88)-scale(7), width: scale(14), height: scale(14))).fill()
-        NSBezierPath(ovalIn: CGRect(x: scale(156)-scale(7), y: scale(88)-scale(7), width: scale(14), height: scale(14))).fill()
+    // --- Ear bolts ---
+    NSColor.hex("#a8b8cc", alpha: 0.75).setFill()
+    NSBezierPath(ovalIn: CGRect(x: scale(7),   y: scale(81), width: scale(14), height: scale(14))).fill()
+    NSBezierPath(ovalIn: CGRect(x: scale(149), y: scale(81), width: scale(14), height: scale(14))).fill()
 
-        // Screen panel
-        NSColor.hex("#a8b8cc", alpha: 0.55).setFill()
-        let screen = NSBezierPath(roundedRect: CGRect(x: scale(24), y: scale(42), width: scale(122), height: scale(88)),
-                                  xRadius: scale(16), yRadius: scale(16))
-        screen.fill()
-    }
+    // --- Screen panel ---
+    NSColor.hex("#a8b8cc", alpha: 0.55).setFill()
+    NSBezierPath(roundedRect: CGRect(x: scale(24), y: scale(42), width: scale(122), height: scale(88)),
+                 xRadius: scale(16), yRadius: scale(16)).fill()
 
-    if size > 32 {
-        // Antenna stem
-        NSColor.hex("#263e58", alpha: 0.50).setStroke()
-        let stem = NSBezierPath()
-        stem.move(to: CGPoint(x: scale(85), y: scale(19)))
-        stem.line(to: CGPoint(x: scale(85), y: scale(42)))
-        stem.lineWidth = scale(1.8)
-        stem.lineCapStyle = .round
-        stem.stroke()
+    // --- Antenna stem + ball ---
+    NSColor.hex("#263e58", alpha: 0.50).setStroke()
+    let stem = NSBezierPath()
+    stem.move(to: CGPoint(x: scale(85), y: scale(19)))
+    stem.line(to: CGPoint(x: scale(85), y: scale(42)))
+    stem.lineWidth = scale(1.8)
+    stem.lineCapStyle = .round
+    stem.stroke()
 
-        // Antenna ball
-        NSColor.hex("#263e58", alpha: 0.50).setFill()
-        NSBezierPath(ovalIn: CGRect(x: scale(85)-scale(6), y: scale(13)-scale(6), width: scale(12), height: scale(12))).fill()
-    }
+    NSColor.hex("#263e58", alpha: 0.50).setFill()
+    NSBezierPath(ovalIn: CGRect(x: scale(79), y: scale(7), width: scale(12), height: scale(12))).fill()
 
-    // >_ glyph — centred in screen panel (or full icon if size <= 16)
+    // --- >_ glyph ---
     let fontSize = scale(42)
     let font = NSFont(name: "SFMono-Light", size: fontSize)
             ?? NSFont(name: "Menlo-Regular", size: fontSize)
             ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .light)
 
-    let attrs: [NSAttributedString.Key: Any] = [
+    let str = NSAttributedString(string: ">_", attributes: [
         .font: font,
         .foregroundColor: NSColor.hex("#1e3048", alpha: 0.80)
-    ]
-    let str = NSAttributedString(string: ">_", attributes: attrs)
+    ])
     let textSize = str.size()
 
-    // Compute horizontal centre and target baseline in screen coords (y from top).
-    // Centre cap height vertically in the screen panel: panel_midY + capHeight/2 = baseline.
-    let textOriginX: CGFloat
-    let baselineScreenY: CGFloat
-    if size <= 16 {
-        textOriginX = (s - textSize.width) / 2
-        baselineScreenY = s * 0.62
-    } else {
-        textOriginX = scale(24) + scale(122) / 2 - textSize.width / 2
-        baselineScreenY = scale(86) + font.capHeight / 2
-    }
+    // Horizontal: centre in screen panel
+    let textX = scale(24) + scale(122) / 2 - textSize.width / 2
 
-    // NSAttributedString.draw(at:) is sensitive to the CTM flip we applied —
-    // glyphs render mirrored vertically. Undo the flip just for this call,
-    // converting the target baseline to AppKit's bottom-up coordinate system.
+    // Vertical: centre cap height at the panel midpoint (screen y from top = scale(86)).
+    // draw(at:) in normal AppKit (bottom-up) places the DESCENT LINE at the given y.
+    // So: descentLine_appkit = s - (panelMidY + capHeight/2 + |descender|)
+    //     → actual baseline lands at panelMidY + capHeight/2
+    //     → cap height spans panelMidY ± capHeight/2  ✓
+    let panelMidY     = scale(86)
+    // draw(at:) in non-flipped AppKit places the descent line at the given y.
+    // To land the baseline at panelMidY + capHeight/2, offset by |descender|.
+    let descentAppkit = s - (panelMidY + font.capHeight / 2 + abs(font.descender))
+
+    // Undo CTM flip for text — NSAttributedString.draw() mirrors glyphs
+    // when the CTM is flipped, making _ appear above > instead of beside it.
     ctx.saveGState()
     ctx.scaleBy(x: 1, y: -1)
     ctx.translateBy(x: 0, y: -s)
-    // In AppKit bottom-up coords, draw(at:) places the baseline at the given y.
-    let appkitBaselineY = s - baselineScreenY
-    str.draw(at: NSPoint(x: textOriginX, y: appkitBaselineY))
+    str.draw(at: NSPoint(x: textX, y: descentAppkit))
     ctx.restoreGState()
 
-    // Cursor block — cap-top to baseline, flush right of glyph
-    if size > 32 {
-        NSColor.hex("#1e3048", alpha: 0.42).setFill()
-        let cursorTop  = baselineScreenY - font.capHeight
-        let cursorLeft = textOriginX + textSize.width + scale(2)
-        let cursor = NSBezierPath(roundedRect: CGRect(x: cursorLeft, y: cursorTop,
-                                                      width: scale(12), height: font.capHeight),
-                                  xRadius: scale(2.5), yRadius: scale(2.5))
-        cursor.fill()
-    }
+    // --- Cursor block ---
+    // Spans cap-top to baseline, aligned with the text
+    let cursorTop  = panelMidY - font.capHeight / 2
+    let cursorLeft = textX + textSize.width + scale(2)
+    NSColor.hex("#1e3048", alpha: 0.42).setFill()
+    NSBezierPath(roundedRect: CGRect(x: cursorLeft, y: cursorTop,
+                                     width: scale(12), height: font.capHeight),
+                 xRadius: scale(2.5), yRadius: scale(2.5)).fill()
 
     return img
 }
@@ -128,7 +116,6 @@ func exportPNG(_ image: NSImage, to path: String) {
     print("wrote \(path)")
 }
 
-// Usage: swift render-icon.swift <output-dir>
 let args = CommandLine.arguments
 guard args.count == 2 else {
     print("Usage: swift render-icon.swift <output-dir>")
