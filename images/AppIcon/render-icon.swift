@@ -22,9 +22,7 @@ func drawRobotIcon(size: Int) -> NSImage {
     let ref: CGFloat = 170          // reference canvas
     let sc = s / ref                // scale factor
 
-    func x(_ v: CGFloat) -> CGFloat { v * sc }
-    func y(_ v: CGFloat) -> CGFloat { v * sc }
-    func r(_ v: CGFloat) -> CGFloat { v * sc }
+    func scale(_ v: CGFloat) -> CGFloat { v * sc }
 
     let img = NSImage(size: NSSize(width: s, height: s))
     img.lockFocus()
@@ -43,13 +41,13 @@ func drawRobotIcon(size: Int) -> NSImage {
     if size > 16 {
         // Ear bolts
         NSColor.hex("#a8b8cc", alpha: 0.75).setFill()
-        NSBezierPath(ovalIn: CGRect(x: x(14)-r(7), y: y(88)-r(7), width: r(14), height: r(14))).fill()
-        NSBezierPath(ovalIn: CGRect(x: x(156)-r(7), y: y(88)-r(7), width: r(14), height: r(14))).fill()
+        NSBezierPath(ovalIn: CGRect(x: scale(14)-scale(7), y: scale(88)-scale(7), width: scale(14), height: scale(14))).fill()
+        NSBezierPath(ovalIn: CGRect(x: scale(156)-scale(7), y: scale(88)-scale(7), width: scale(14), height: scale(14))).fill()
 
         // Screen panel
         NSColor.hex("#a8b8cc", alpha: 0.55).setFill()
-        let screen = NSBezierPath(roundedRect: CGRect(x: x(24), y: y(42), width: x(122), height: y(88)),
-                                  xRadius: r(16), yRadius: r(16))
+        let screen = NSBezierPath(roundedRect: CGRect(x: scale(24), y: scale(42), width: scale(122), height: scale(88)),
+                                  xRadius: scale(16), yRadius: scale(16))
         screen.fill()
     }
 
@@ -57,19 +55,19 @@ func drawRobotIcon(size: Int) -> NSImage {
         // Antenna stem
         NSColor.hex("#263e58", alpha: 0.50).setStroke()
         let stem = NSBezierPath()
-        stem.move(to: CGPoint(x: x(85), y: y(19)))
-        stem.line(to: CGPoint(x: x(85), y: y(42)))
-        stem.lineWidth = r(1.8)
+        stem.move(to: CGPoint(x: scale(85), y: scale(19)))
+        stem.line(to: CGPoint(x: scale(85), y: scale(42)))
+        stem.lineWidth = scale(1.8)
         stem.lineCapStyle = .round
         stem.stroke()
 
         // Antenna ball
         NSColor.hex("#263e58", alpha: 0.50).setFill()
-        NSBezierPath(ovalIn: CGRect(x: x(85)-r(6), y: y(13)-r(6), width: r(12), height: r(12))).fill()
+        NSBezierPath(ovalIn: CGRect(x: scale(85)-scale(6), y: scale(13)-scale(6), width: scale(12), height: scale(12))).fill()
     }
 
     // >_ glyph — centred in screen panel (or full icon if size <= 16)
-    let fontSize = r(42)
+    let fontSize = scale(42)
     let font = NSFont(name: "SFMono-Light", size: fontSize)
             ?? NSFont(name: "Menlo-Regular", size: fontSize)
             ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .light)
@@ -87,8 +85,8 @@ func drawRobotIcon(size: Int) -> NSImage {
         textOriginX = (s - textSize.width) / 2
         textOriginY = (s - textSize.height) / 2
     } else {
-        let screenMidX = x(24) + x(122) / 2
-        let screenMidY = y(42) + y(88) / 2
+        let screenMidX = scale(24) + scale(122) / 2
+        let screenMidY = scale(42) + scale(88) / 2
         textOriginX = screenMidX - textSize.width / 2
         textOriginY = screenMidY - textSize.height / 2
     }
@@ -97,8 +95,8 @@ func drawRobotIcon(size: Int) -> NSImage {
     // Cursor block (full detail only)
     if size > 32 {
         NSColor.hex("#1e3048", alpha: 0.42).setFill()
-        let cursor = NSBezierPath(roundedRect: CGRect(x: x(115), y: y(74), width: x(14), height: y(22)),
-                                  xRadius: r(2.5), yRadius: r(2.5))
+        let cursor = NSBezierPath(roundedRect: CGRect(x: scale(115), y: scale(74), width: scale(14), height: scale(22)),
+                                  xRadius: scale(2.5), yRadius: scale(2.5))
         cursor.fill()
     }
 
