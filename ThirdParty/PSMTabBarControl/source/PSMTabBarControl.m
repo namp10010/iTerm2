@@ -520,7 +520,7 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     [_style autorelease];
     _style = [newStyle retain];
     _style.tabBar = self;
-    
+
     // restyle add tab button
     if (_addTabButton) {
         [self setupButtons];
@@ -528,6 +528,9 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 
     [self update:_automaticallyAnimates];
     [self backgroundColorWillChange];
+    if ([_style respondsToSelector:@selector(updateOutlinePulseState)]) {
+        [(id)_style performSelector:@selector(updateOutlinePulseState)];
+    }
 }
 
 - (void)setOrientation:(PSMTabBarOrientation)value {
@@ -2621,6 +2624,13 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
     [self setNeedsDisplay:YES];
 }
 
+- (void)viewDidMoveToWindow {
+    [super viewDidMoveToWindow];
+    if ([_style respondsToSelector:@selector(updateOutlinePulseState)]) {
+        [(id)_style performSelector:@selector(updateOutlinePulseState)];
+    }
+}
+
 - (void)windowStatusDidChange:(NSNotification *)notification {
     // hide? must readjust things if I'm not supposed to be showing
     // this block of code only runs when the app launches
@@ -2682,6 +2692,9 @@ static CFAbsoluteTime gDragMoveFirstTime = 0;
     [self setNeedsDisplay:YES];
      _awakenedFromNib = YES;
     [self update];
+    if ([_style respondsToSelector:@selector(updateOutlinePulseState)]) {
+        [(id)_style performSelector:@selector(updateOutlinePulseState)];
+    }
 }
 
 #pragma mark -

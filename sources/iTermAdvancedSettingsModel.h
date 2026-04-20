@@ -48,6 +48,8 @@ extern NSString *const iTermAdvancedSettingsDidChange;
 + (BOOL)acceptOSC7;
 + (BOOL)activePaneBorderPulse;
 + (double)activePaneBorderPulsePeriod;
++ (BOOL)activeTabOutlinePulse;
++ (double)activeTabOutlinePulsePeriod;
 + (double)activeUpdateCadence;
 + (int)adaptiveFrameRateThroughputThreshold;
 + (BOOL)addUtilitiesToPATH;

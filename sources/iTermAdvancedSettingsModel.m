@@ -294,6 +294,8 @@ DEFINE_FLOAT(compactEdgeDragSize, 10, SECTION_TABS @"In the Compact theme, you c
 DEFINE_FLOAT(minimalTabStyleBackgroundColorDifference, 0.05, SECTION_TABS @"In the Minimal theme, how different should the background color of the selected tab be from the others?\nTakes a value in 0 to 1, where 0 is no difference and 1 very different.");
 DEFINE_FLOAT(minimalTabStyleOutlineStrength, 0.2, SECTION_TABS @"In the Minimal theme, how prominent should the tab outline be?\nTakes a value in 0 to 1, where 0 is invisible and 1 is very prominent");
 DEFINE_FLOAT(minimalTabStyleOutlineThickness, 1.0, SECTION_TABS @"In the Minimal theme, thickness in points of the selected-tab outline (and the boundary around the terminal area).\nDefault 1.0. Set to 0 to hide the outline entirely.");
+DEFINE_BOOL(activeTabOutlinePulse, NO, SECTION_TABS @"Pulse the active tab outline in the Minimal theme.");
+DEFINE_FLOAT(activeTabOutlinePulsePeriod, 1.6, SECTION_TABS @"Period in seconds of the active tab outline pulse.");
 DEFINE_FLOAT(minimalSplitPaneDividerProminence, 0.15, SECTION_TABS @"In the Minimal theme, how prominent should split pane dividers be?\nTakes a value in 0 to 1, where 0 is invisible and 1 is very prominent");
 DEFINE_FLOAT(minimalTabDividerProminence, 0, SECTION_TABS @"In the Minimal theme, how prominent should the vertical divider between tabs be?\nTakes a value in 0 to 1, where 0 is invisible (default) and 1 is very prominent.");
 DEFINE_FLOAT(coloredUnselectedTabTextProminence, 0.5, SECTION_TABS @"How prominent should the text in a non-selected tab be when there are colored tabs in a window?\nTakes a value in 0 to 1, the alpha value.");

@@ -49,7 +49,26 @@
 
 @end
 
-@implementation PSMMinimalTabStyle
+@implementation PSMMinimalTabStyle {
+    NSTimer *_pulseTimer;
+    NSTimeInterval _pulseStartTime;
+    CGFloat _pulsePeriod;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(advancedSettingsDidChange:)
+                                                     name:iTermAdvancedSettingsDidChange
+                                                   object:nil];
+    }
+    return self;
+}
+
+- (void)advancedSettingsDidChange:(NSNotification *)notification {
+    [self updateOutlinePulseState];
+}
 
 - (NSString *)name {
     return @"Minimal";
@@ -346,13 +365,63 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
 }
 
 - (NSColor *)outlineColorForCell:(PSMTabBarCell *)cell {
+    NSColor *base;
     if (cell && !cell.isInOverflowMenu) {
         NSColor *override = cell.groupColor ?: cell.tabColor;
-        if (override) {
-            return override;
-        }
+        base = override ?: [self outlineColor];
+    } else {
+        base = [self outlineColor];
     }
-    return [self outlineColor];
+    const CGFloat mult = [self currentPulseAlphaMultiplier];
+    if (mult >= 0.999) {
+        return base;
+    }
+    return [base colorWithAlphaComponent:base.alphaComponent * mult];
+}
+
+- (CGFloat)currentPulseAlphaMultiplier {
+    if (!_pulseTimer) {
+        return 1.0;
+    }
+    const NSTimeInterval elapsed = [NSDate timeIntervalSinceReferenceDate] - _pulseStartTime;
+    const double theta = fmod(elapsed, _pulsePeriod) / _pulsePeriod * (2.0 * M_PI);
+    const double normalised = (1.0 - cos(theta)) / 2.0;  // 0..1
+    const CGFloat low = 0.35;
+    return (CGFloat)(1.0 - normalised * (1.0 - low));
+}
+
+- (void)updateOutlinePulseState {
+    PSMTabBarControl *bar = self.tabBar;
+    const BOOL wantPulse = ([iTermAdvancedSettingsModel activeTabOutlinePulse]
+                            && bar != nil
+                            && bar.window != nil
+                            && bar.window.isKeyWindow);
+    if (wantPulse && !_pulseTimer) {
+        _pulsePeriod = MAX(0.2, [iTermAdvancedSettingsModel activeTabOutlinePulsePeriod]);
+        _pulseStartTime = [NSDate timeIntervalSinceReferenceDate];
+        _pulseTimer = [NSTimer scheduledTimerWithTimeInterval:1.0/30.0
+                                                       target:self
+                                                     selector:@selector(pulseTick:)
+                                                     userInfo:nil
+                                                      repeats:YES];
+    } else if (!wantPulse && _pulseTimer) {
+        [self stopOutlinePulse];
+        [bar setNeedsDisplay:YES];
+    }
+}
+
+- (void)stopOutlinePulse {
+    [_pulseTimer invalidate];
+    _pulseTimer = nil;
+}
+
+- (void)pulseTick:(NSTimer *)timer {
+    [self.tabBar setNeedsDisplay:YES];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [self stopOutlinePulse];
 }
 
 - (void)drawVerticalLineInFrame:(NSRect)rect x:(CGFloat)x {
