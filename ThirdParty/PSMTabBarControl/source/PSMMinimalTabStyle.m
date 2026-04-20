@@ -714,7 +714,12 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(left, top)];
     [path lineToPoint:NSMakePoint(right, top)];
 
+    const CGFloat thickness = MAX(0.0, [iTermAdvancedSettingsModel minimalTabStyleOutlineThickness]);
+    if (thickness <= 0) {
+        return;
+    }
     [[self outlineColorForCell:cell] set];
+    [path setLineWidth:thickness];
     [path stroke];
 }
 
@@ -740,7 +745,12 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, top)];
     [path lineToPoint:NSMakePoint(right, bottom)];
 
+    const CGFloat thickness = MAX(0.0, [iTermAdvancedSettingsModel minimalTabStyleOutlineThickness]);
+    if (thickness <= 0) {
+        return;
+    }
     [[self outlineColorForCell:cell] set];
+    [path setLineWidth:thickness];
     [path stroke];
 }
 
@@ -787,7 +797,12 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(left, bottom)];
     [path lineToPoint:NSMakePoint(right, bottom)];
 
+    const CGFloat thickness = MAX(0.0, [iTermAdvancedSettingsModel minimalTabStyleOutlineThickness]);
+    if (thickness <= 0) {
+        return;
+    }
     [[self outlineColorForCell:cell] set];
+    [path setLineWidth:thickness];
     [path stroke];
 }
 
@@ -813,7 +828,12 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, bottom)];
     [path lineToPoint:NSMakePoint(right, top)];
 
+    const CGFloat thickness = MAX(0.0, [iTermAdvancedSettingsModel minimalTabStyleOutlineThickness]);
+    if (thickness <= 0) {
+        return;
+    }
     [[self outlineColorForCell:cell] set];
+    [path setLineWidth:thickness];
     [path stroke];
 }
 
@@ -852,7 +872,12 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, bottom)];
     [path lineToPoint:NSMakePoint(0, bottom)];
 
+    const CGFloat thickness = MAX(0.0, [iTermAdvancedSettingsModel minimalTabStyleOutlineThickness]);
+    if (thickness <= 0) {
+        return;
+    }
     [[self outlineColorForCell:cell] set];
+    [path setLineWidth:thickness];
     [path stroke];
 }
 
@@ -871,7 +896,12 @@ static CGFloat PSMWeightedAverage(CGFloat l, CGFloat u, CGFloat w) {
     [path lineToPoint:NSMakePoint(right, top)];
     [path lineToPoint:NSMakePoint(right, bottom)];
 
+    const CGFloat thickness = MAX(0.0, [iTermAdvancedSettingsModel minimalTabStyleOutlineThickness]);
+    if (thickness <= 0) {
+        return;
+    }
     [[self outlineColorForCell:cell] set];
+    [path setLineWidth:thickness];
     [path stroke];
 }
 
