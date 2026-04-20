@@ -29,6 +29,9 @@ class iTermActivePaneBorderView: NSView {
     private var bottomLeftRadius: CGFloat = 0
     private var bottomRightRadius: CGFloat = 0
 
+    private let pulseAnimationKey = "iTermPaneBorderPulse"
+    private var currentPulsePeriod: TimeInterval?
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         setup()
@@ -68,6 +71,38 @@ class iTermActivePaneBorderView: NSView {
     private func updateBorder() {
         shapeLayer.strokeColor = borderColor.cgColor
         shapeLayer.lineWidth = borderWidth
+        if let period = currentPulsePeriod {
+            applyPulseAnimation(period: period)
+        }
+    }
+
+    @objc func startPulsing(period: TimeInterval) {
+        currentPulsePeriod = period
+        applyPulseAnimation(period: period)
+    }
+
+    @objc func stopPulsing() {
+        currentPulsePeriod = nil
+        shapeLayer.removeAnimation(forKey: pulseAnimationKey)
+    }
+
+    private func applyPulseAnimation(period: TimeInterval) {
+        shapeLayer.removeAnimation(forKey: pulseAnimationKey)
+        guard period > 0, let baseColor = shapeLayer.strokeColor else { return }
+
+        let fromAlpha = baseColor.alpha
+        let toAlpha = max(0.15, fromAlpha * 0.35)
+        guard let fromColor = baseColor.copy(alpha: fromAlpha),
+              let toColor = baseColor.copy(alpha: toAlpha) else { return }
+
+        let animation = CABasicAnimation(keyPath: "strokeColor")
+        animation.fromValue = fromColor
+        animation.toValue = toColor
+        animation.duration = period / 2.0
+        animation.autoreverses = true
+        animation.repeatCount = .infinity
+        animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        shapeLayer.add(animation, forKey: pulseAnimationKey)
     }
 
     private func updatePath() {

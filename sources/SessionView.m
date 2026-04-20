@@ -2344,6 +2344,7 @@ typedef NS_OPTIONS(NSUInteger, iTermCornerFlags) {
     DLog(@"updateActivePaneBorder: isActiveSession=%d shouldShow=%d window=%d", isActiveSession, shouldShow, (int)self.window.windowNumber);
 
     if (!shouldShow) {
+        [_activePaneBorderView stopPulsing];
         _activePaneBorderView.hidden = YES;
         return;
     }
@@ -2384,6 +2385,12 @@ typedef NS_OPTIONS(NSUInteger, iTermCornerFlags) {
                                   topRight:(corners & iTermCornerFlagTopRight) != 0
                                 bottomLeft:(corners & iTermCornerFlagBottomLeft) != 0
                                bottomRight:(corners & iTermCornerFlagBottomRight) != 0];
+
+    if ([iTermAdvancedSettingsModel activePaneBorderPulse] && self.window.isKeyWindow) {
+        [_activePaneBorderView startPulsingWithPeriod:[iTermAdvancedSettingsModel activePaneBorderPulsePeriod]];
+    } else {
+        [_activePaneBorderView stopPulsing];
+    }
 
     _activePaneBorderView.hidden = NO;
 }

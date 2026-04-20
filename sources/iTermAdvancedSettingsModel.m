@@ -612,6 +612,9 @@ DEFINE_STRING(alternateSSHIntegrationScript, @"", SECTION_DEBUGGING @"Alternate 
 
 #define SECTION_SESSION @"Session: "
 
+DEFINE_BOOL(activePaneBorderPulse, NO, SECTION_SESSION @"Pulse the active pane border to highlight the active pane.");
+DEFINE_FLOAT(activePaneBorderPulsePeriod, 1.6, SECTION_SESSION @"Period in seconds of the active pane border pulse.");
+
 DEFINE_BOOL(runJobsInServers, YES, SECTION_SESSION @"Enable session restoration.\nSession restoration runs jobs in separate processes. They will survive crashes, force quits, and upgrades.\nYou must restart iTerm2 for this change to take effect.");
 DEFINE_BOOL(bootstrapDaemon, YES, SECTION_SESSION @"Allow sessions to survive logging out and back in.\nThis breaks the “auth sufficient pam_tid.so” hack some people use to allow sudo to authenticate with Touch ID.");
 

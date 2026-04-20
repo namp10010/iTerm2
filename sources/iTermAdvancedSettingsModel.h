@@ -46,6 +46,8 @@ extern NSString *const iTermAdvancedSettingsDidChange;
 + (int)browserProxyPort;
 + (void)setBrowserProxyPort:(int)value;
 + (BOOL)acceptOSC7;
++ (BOOL)activePaneBorderPulse;
++ (double)activePaneBorderPulsePeriod;
 + (double)activeUpdateCadence;
 + (int)adaptiveFrameRateThroughputThreshold;
 + (BOOL)addUtilitiesToPATH;
