@@ -68,6 +68,7 @@
 @property(nonatomic, assign) BOOL groupCollapsed;
 @property(nonatomic, assign) NSInteger groupMemberCount;
 @property(nonatomic, assign) BOOL groupNameEditing;
+@property(nonatomic, assign) BOOL groupIsActive;
 
 // creation/destruction
 - (id)initWithControlView:(PSMTabBarControl *)controlView;

@@ -1170,6 +1170,13 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
 
 - (void)rebuildDisplayCells {
     [_displayCells removeAllObjects];
+    id activeGroup = nil;
+    if ([_delegate respondsToSelector:@selector(tabGroupForTabViewItem:)]) {
+        NSTabViewItem *selectedItem = self.tabView.selectedTabViewItem;
+        if (selectedItem) {
+            activeGroup = [_delegate tabGroupForTabViewItem:selectedItem];
+        }
+    }
     id currentGroup = nil;
     BOOL currentGroupCollapsed = NO;
     PSMTabBarCell *currentHeader = nil;
@@ -1223,6 +1230,7 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                 if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
                     header.groupColor = [_delegate colorForGroup:group];
                 }
+                header.groupIsActive = (group == activeGroup);
                 currentHeader = header;
                 // If the last cell in _displayCells is a placeholder (the slot that sits
                 // just before this group's first member in tabCells during drag), move
@@ -1269,8 +1277,10 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
             if ([_delegate respondsToSelector:@selector(colorForGroup:)]) {
                 cell.groupColor = [_delegate colorForGroup:currentGroup];
             }
+            cell.groupIsActive = (currentGroup == activeGroup);
         } else {
             cell.groupColor = nil;
+            cell.groupIsActive = NO;
         }
         [_displayCells addObject:cell];
     }
