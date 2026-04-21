@@ -3035,6 +3035,7 @@ class CreateTabRequest(google___protobuf___message___Message):
     window_id = ... # type: typing___Text
     tab_index = ... # type: int
     command = ... # type: typing___Text
+    group_id = ... # type: typing___Text
 
     @property
     def custom_profile_properties(self) -> google___protobuf___internal___containers___RepeatedCompositeFieldContainer[ProfileProperty]: ...
@@ -3045,6 +3046,7 @@ class CreateTabRequest(google___protobuf___message___Message):
         tab_index : typing___Optional[int] = None,
         command : typing___Optional[typing___Text] = None,
         custom_profile_properties : typing___Optional[typing___Iterable[ProfileProperty]] = None,
+        group_id : typing___Optional[typing___Text] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> CreateTabRequest: ...
@@ -3069,6 +3071,7 @@ class CreateTabResponse(google___protobuf___message___Message):
     INVALID_WINDOW_ID = typing___cast(Status, 2)
     INVALID_TAB_INDEX = typing___cast(Status, 3)
     MISSING_SUBSTITUTION = typing___cast(Status, 4)
+    INVALID_GROUP_ID = typing___cast(Status, 5)
 
     status = ... # type: CreateTabResponse.Status
     window_id = ... # type: typing___Text

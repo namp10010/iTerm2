@@ -169,7 +169,8 @@ async def async_create_tab(
         window=None,
         index=None,
         command=None,
-        profile_customizations=None):
+        profile_customizations=None,
+        group_id=None):
     """
     Creates a new tab or window.
 
@@ -181,6 +182,10 @@ async def async_create_tab(
     command: The command to run in the new session, or None for its default
         behavior.
     profile_customizations: None, or a dictionary of overrides.
+    group_id: Optional tab group identifier. When supplied, the new tab is
+        added to the tab group with this identifier, in the window that owns
+        that group. If `window` is also supplied it must be that same window.
+        If no open group has this identifier, INVALID_GROUP_ID is returned.
 
     Returns: iterm2.api_pb2.ServerOriginatedMessage
     """
@@ -199,6 +204,8 @@ async def async_create_tab(
     if profile_customizations is not None:
         request.create_tab_request.custom_profile_properties.extend(
             _profile_properties_from_dict(profile_customizations))
+    if group_id is not None:
+        request.create_tab_request.group_id = group_id
     return await _async_call(connection, request)
 
 

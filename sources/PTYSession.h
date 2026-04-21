@@ -141,6 +141,10 @@ typedef enum {
 // given tab.
 - (int)tabNumberForItermSessionId;
 
+// Returns the tab group identifier (UUID string) for ITERM_GROUP_ID, or nil
+// if the session's tab is not in any group.
+- (nullable NSString *)tabGroupIdentifierForSession:(PTYSession *)session;
+
 // Sibling sessions in this tab.
 - (NSArray<PTYSession *> *)sessions;
 

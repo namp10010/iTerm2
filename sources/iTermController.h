@@ -48,6 +48,7 @@ extern NSString *const iTermSnippetsTagsDidChange;
 @class PseudoTerminal;
 @class PTYSession;
 @class PTYTab;
+@class iTermTabGroup;
 @class PTYTextView;
 @class TmuxController;
 @class WKWebView;
@@ -98,6 +99,12 @@ extern NSString *const iTermSnippetsTagsDidChange;
 - (PTYTab *)tabWithID:(NSString *)tabID;  // short numeric ID
 - (PTYTab *)tabWithGUID:(NSString *)guid;  // UUID
 - (PseudoTerminal *)windowForSessionWithGUID:(NSString *)guid;
+
+// Locates the terminal window containing the tab group with the given
+// identifier. Returns nil if no open window has such a group. On match,
+// *outGroup is set to the tab group.
+- (PseudoTerminal *)terminalContainingTabGroupWithIdentifier:(NSString *)identifier
+                                                       group:(out iTermTabGroup **)outGroup;
 
 - (int)allocateWindowNumber;
 

@@ -1666,6 +1666,10 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
     [self.viewToSessionMap setObject:newSession forKey:newSession.view];
 }
 
+- (NSString *)tabGroupIdentifierForSession:(PTYSession *)session {
+    return self.tabGroup.identifier;
+}
+
 - (int)tabNumberForItermSessionId {
     if (_tabNumberForItermSessionId != -1) {
         return _tabNumberForItermSessionId;

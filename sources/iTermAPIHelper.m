@@ -35,6 +35,7 @@
 #import "iTermBuriedSessions.h"
 #import "iTermColorPresets.h"
 #import "iTermController.h"
+#import "iTermTabGroup.h"
 #import "iTermDisclosableView.h"
 #import "iTermKeyMappings.h"
 #import "iTermLSOF.h"
@@ -2365,6 +2366,26 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
         }
     }
 
+    if (request.hasGroupId) {
+        iTermTabGroup *group = nil;
+        PseudoTerminal *groupTerm =
+            [[iTermController sharedInstance] terminalContainingTabGroupWithIdentifier:request.groupId
+                                                                                 group:&group];
+        if (!groupTerm || !group) {
+            ITMCreateTabResponse *response = [[ITMCreateTabResponse alloc] init];
+            response.status = ITMCreateTabResponse_Status_InvalidGroupId;
+            handler(response);
+            return;
+        }
+        if (term && term != groupTerm) {
+            ITMCreateTabResponse *response = [[ITMCreateTabResponse alloc] init];
+            response.status = ITMCreateTabResponse_Status_InvalidGroupId;
+            handler(response);
+            return;
+        }
+        term = groupTerm;
+    }
+
     Profile *profile = [[ProfileModel sharedInstance] defaultBookmark];
     if (request.hasProfileName) {
         profile = [[ProfileModel sharedInstance] bookmarkWithName:request.profileName];
@@ -2414,6 +2435,21 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
             [term.tabBarControl moveTabAtIndex:sourceIndex toIndex:request.tabIndex];
         } else {
             status = ITMCreateTabResponse_Status_InvalidTabIndex;
+        }
+    }
+
+    if (request.hasGroupId) {
+        iTermTabGroup *group = nil;
+        PseudoTerminal *groupTerm =
+            [[iTermController sharedInstance] terminalContainingTabGroupWithIdentifier:request.groupId
+                                                                                 group:&group];
+        // Group membership was validated before tab creation. If it has gone
+        // away in the interim (e.g. the window closed during async creation)
+        // surface it as INVALID_GROUP_ID; the tab still exists.
+        if (groupTerm == term && group) {
+            [term addTab:tab toGroup:group];
+        } else {
+            status = ITMCreateTabResponse_Status_InvalidGroupId;
         }
     }
 

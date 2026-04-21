@@ -43,6 +43,7 @@
 #import "PasteboardHistory.h"
 #import "PreferencePanel.h"
 #import "PseudoTerminal.h"
+#import "iTermTabGroup.h"
 #import "UKCrashReporter.h"
 #import "VT100Screen.h"
 #import "WindowArrangements.h"
@@ -1286,6 +1287,24 @@ replaceInitialDirectoryForSessionWithGUID:(NSString *)guid
             return term;
         }
         DLog(@"%@", term.terminalGuid);
+    }
+    return nil;
+}
+
+- (PseudoTerminal *)terminalContainingTabGroupWithIdentifier:(NSString *)identifier
+                                                       group:(out iTermTabGroup **)outGroup {
+    if (identifier.length == 0) {
+        return nil;
+    }
+    for (PseudoTerminal *term in [self terminals]) {
+        for (iTermTabGroup *group in [term tabGroups]) {
+            if ([group.identifier isEqualToString:identifier]) {
+                if (outGroup) {
+                    *outGroup = group;
+                }
+                return term;
+            }
+        }
     }
     return nil;
 }

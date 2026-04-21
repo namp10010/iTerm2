@@ -306,7 +306,8 @@ class Window:
             command: typing.Optional[str] = None,
             index: typing.Optional[int] = None,
             profile_customizations: typing.Optional[
-                iterm2.profile.LocalWriteOnlyProfile] = None) -> typing.Optional[
+                iterm2.profile.LocalWriteOnlyProfile] = None,
+            group_id: typing.Optional[str] = None) -> typing.Optional[
                     iterm2.tab.Tab]:
         """
         Creates a new tab in this window.
@@ -320,6 +321,10 @@ class Window:
             (0=first position, etc.)
         :param profile_customizations: LocalWriteOnlyProfile giving changes to
             make in profile. Mutually exclusive with command.
+        :param group_id: Identifier of an existing tab group in this window to
+            add the new tab to. If `None`, the tab does not join a group. If
+            the identifier does not match any group in this window,
+            `CreateTabException` is raised.
 
         :returns: :class:`Tab` or `None` if the session closed right away.
 
@@ -340,7 +345,8 @@ class Window:
             profile=profile,
             window=self.__window_id,
             index=index,
-            profile_customizations=custom_dict)
+            profile_customizations=custom_dict,
+            group_id=group_id)
         # pylint: disable=no-member
         if (result.create_tab_response.status ==
                 iterm2.api_pb2.CreateTabResponse.Status.Value("OK")):

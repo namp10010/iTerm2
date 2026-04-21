@@ -13193,6 +13193,7 @@ typedef struct ITMListSessionsResponse_Tab__storage_ {
 @dynamic hasTabIndex, tabIndex;
 @dynamic hasCommand, command;
 @dynamic customProfilePropertiesArray, customProfilePropertiesArray_Count;
+@dynamic hasGroupId, groupId;
 
 typedef struct ITMCreateTabRequest__storage_ {
   uint32_t _has_storage_[1];
@@ -13201,6 +13202,7 @@ typedef struct ITMCreateTabRequest__storage_ {
   NSString *windowId;
   NSString *command;
   NSMutableArray *customProfilePropertiesArray;
+  NSString *groupId;
 } ITMCreateTabRequest__storage_;
 
 // This method is threadsafe because it is initially called
@@ -13253,6 +13255,15 @@ typedef struct ITMCreateTabRequest__storage_ {
         .offset = (uint32_t)offsetof(ITMCreateTabRequest__storage_, customProfilePropertiesArray),
         .flags = GPBFieldRepeated,
         .dataType = GPBDataTypeMessage,
+      },
+      {
+        .name = "groupId",
+        .dataTypeSpecific.clazz = Nil,
+        .number = ITMCreateTabRequest_FieldNumber_GroupId,
+        .hasIndex = 4,
+        .offset = (uint32_t)offsetof(ITMCreateTabRequest__storage_, groupId),
+        .flags = GPBFieldOptional,
+        .dataType = GPBDataTypeString,
       },
     };
     GPBDescriptor *localDescriptor =
@@ -13358,13 +13369,15 @@ GPBEnumDescriptor *ITMCreateTabResponse_Status_EnumDescriptor(void) {
   if (!descriptor) {
     static const char *valueNames =
         "Ok\000InvalidProfileName\000InvalidWindowId\000In"
-        "validTabIndex\000MissingSubstitution\000";
+        "validTabIndex\000MissingSubstitution\000InvalidGr"
+        "oupId\000";
     static const int32_t values[] = {
         ITMCreateTabResponse_Status_Ok,
         ITMCreateTabResponse_Status_InvalidProfileName,
         ITMCreateTabResponse_Status_InvalidWindowId,
         ITMCreateTabResponse_Status_InvalidTabIndex,
         ITMCreateTabResponse_Status_MissingSubstitution,
+        ITMCreateTabResponse_Status_InvalidGroupId,
     };
     GPBEnumDescriptor *worker =
         [GPBEnumDescriptor allocDescriptorForName:GPBNSStringifySymbol(ITMCreateTabResponse_Status)
@@ -13387,6 +13400,7 @@ BOOL ITMCreateTabResponse_Status_IsValidValue(int32_t value__) {
     case ITMCreateTabResponse_Status_InvalidWindowId:
     case ITMCreateTabResponse_Status_InvalidTabIndex:
     case ITMCreateTabResponse_Status_MissingSubstitution:
+    case ITMCreateTabResponse_Status_InvalidGroupId:
       return YES;
     default:
       return NO;

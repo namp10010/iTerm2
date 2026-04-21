@@ -277,6 +277,7 @@ static NSString *const __attribute__((unused)) DEPRECATED_SESSION_ARRANGEMENT_DE
 static NSString *const __attribute__((unused)) DEPRECATED_SESSION_ARRANGEMENT_WINDOW_TITLE_DEPRECATED = @"Session Window Title";  // server-set window name
 static NSString *const __attribute__((unused)) DEPRECATED_SESSION_ARRANGEMENT_NAME_DEPRECATED = @"Session Name";  // server-set "icon" (tab) name
 static NSString *const SESSION_ARRANGEMENT_GUID = @"Session GUID";  // A truly unique ID.
+static NSString *const SESSION_ARRANGEMENT_GROUP_ID = @"Group ID";  // iTermTabGroup identifier, if any.
 static NSString *const SESSION_ARRANGEMENT_LIVE_SESSION = @"Live Session";  // If zoomed, this gives the "live" session's arrangement.
 static NSString *const SESSION_ARRANGEMENT_SUBSTITUTIONS = @"Substitutions";  // Dictionary for $$VAR$$ substitutions
 static NSString *const SESSION_UNIQUE_ID = @"Session Unique ID";  // DEPRECATED. A string used for restoring soft-terminated sessions for arrangements that predate the introduction of the GUID.
@@ -612,6 +613,7 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
     // will differ from its real GUID. It only serves to find the session in the arrangement to
     // make repairs.
     NSString *_arrangementGUID;
+    NSString *_groupId;  // Tab group identifier, restored from arrangement for ITERM_GROUP_ID.
 
     VT100GridSize _savedGridSize;
 
@@ -1113,6 +1115,7 @@ ITERM_WEAKLY_REFERENCEABLE
     [_composerManager release];
     [_tmuxClientWritePipe release];
     [_arrangementGUID release];
+    [_groupId release];
     [_triggerWindowController release];
     [_filter release];
     [_asyncFilter cancel];
@@ -2011,6 +2014,9 @@ ITERM_WEAKLY_REFERENCEABLE
 
         // GUID will be set for new saved arrangements since late 2014.
         // Older versions won't be able to associate saved state with windows from a saved arrangement.
+        if (arrangement[SESSION_ARRANGEMENT_GROUP_ID]) {
+            aSession->_groupId = [arrangement[SESSION_ARRANGEMENT_GROUP_ID] copy];
+        }
         if (arrangement[SESSION_ARRANGEMENT_GUID]) {
             DLog(@"The session arrangement has a GUID");
             NSString *guid = arrangement[SESSION_ARRANGEMENT_GUID];
@@ -2913,6 +2919,10 @@ ITERM_WEAKLY_REFERENCEABLE
         env[@"TERM_FEATURES"] = [VT100Output encodedTermFeaturesForCapabilities:[self capabilities]];
     }
     env[@"ITERM_SESSION_ID"] = itermId;
+    NSString *groupId = _groupId ?: [_delegate tabGroupIdentifierForSession:self];
+    if (groupId) {
+        env[@"ITERM_GROUP_ID"] = groupId;
+    }
     env[@"TERM_PROGRAM_VERSION"] = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
     env[@"TERM_SESSION_ID"] = itermId;
     env[@"TERM_PROGRAM"] = @"iTerm.app";
@@ -6326,6 +6336,10 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
         return anObject.dictionaryValue;
     }];
     result[SESSION_ARRANGEMENT_ENVIRONMENT] = self.environment ?: @{};
+    NSString *groupId = [_delegate tabGroupIdentifierForSession:self];
+    if (groupId) {
+        result[SESSION_ARRANGEMENT_GROUP_ID] = groupId;
+    }
     result[SESSION_ARRANGEMENT_IS_UTF_8] = @(self.isUTF8);
     result[SESSION_ARRANGEMENT_SHORT_LIVED_SINGLE_USE] = @(self.shortLivedSingleUse);
     if (self.hostnameToShell) {

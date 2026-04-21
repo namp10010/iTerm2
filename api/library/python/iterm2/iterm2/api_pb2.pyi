@@ -3963,10 +3963,12 @@ class CreateTabRequest(google.protobuf.message.Message):
     TAB_INDEX_FIELD_NUMBER: builtins.int
     COMMAND_FIELD_NUMBER: builtins.int
     CUSTOM_PROFILE_PROPERTIES_FIELD_NUMBER: builtins.int
+    GROUP_ID_FIELD_NUMBER: builtins.int
     profile_name: typing.Text = ...
     window_id: typing.Text = ...
     tab_index: builtins.int = ...
     command: typing.Text = ...
+    group_id: typing.Text = ...
 
     @property
     def custom_profile_properties(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ProfileProperty]: ...
@@ -3978,9 +3980,10 @@ class CreateTabRequest(google.protobuf.message.Message):
         tab_index : typing.Optional[builtins.int] = ...,
         command : typing.Optional[typing.Text] = ...,
         custom_profile_properties : typing.Optional[typing.Iterable[global___ProfileProperty]] = ...,
+        group_id : typing.Optional[typing.Text] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal[u"command",b"command",u"profile_name",b"profile_name",u"tab_index",b"tab_index",u"window_id",b"window_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal[u"command",b"command",u"custom_profile_properties",b"custom_profile_properties",u"profile_name",b"profile_name",u"tab_index",b"tab_index",u"window_id",b"window_id"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal[u"command",b"command",u"group_id",b"group_id",u"profile_name",b"profile_name",u"tab_index",b"tab_index",u"window_id",b"window_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal[u"command",b"command",u"custom_profile_properties",b"custom_profile_properties",u"group_id",b"group_id",u"profile_name",b"profile_name",u"tab_index",b"tab_index",u"window_id",b"window_id"]) -> None: ...
 global___CreateTabRequest = CreateTabRequest
 
 class CreateTabResponse(google.protobuf.message.Message):
@@ -3992,6 +3995,7 @@ class CreateTabResponse(google.protobuf.message.Message):
         INVALID_WINDOW_ID = CreateTabResponse.Status.V(2)
         INVALID_TAB_INDEX = CreateTabResponse.Status.V(3)
         MISSING_SUBSTITUTION = CreateTabResponse.Status.V(4)
+        INVALID_GROUP_ID = CreateTabResponse.Status.V(5)
     class Status(metaclass=_Status):
         V = typing.NewType('V', builtins.int)
     OK = CreateTabResponse.Status.V(0)
@@ -3999,6 +4003,7 @@ class CreateTabResponse(google.protobuf.message.Message):
     INVALID_WINDOW_ID = CreateTabResponse.Status.V(2)
     INVALID_TAB_INDEX = CreateTabResponse.Status.V(3)
     MISSING_SUBSTITUTION = CreateTabResponse.Status.V(4)
+    INVALID_GROUP_ID = CreateTabResponse.Status.V(5)
 
     STATUS_FIELD_NUMBER: builtins.int
     WINDOW_ID_FIELD_NUMBER: builtins.int

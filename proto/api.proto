@@ -1582,6 +1582,14 @@ message CreateTabRequest {
 
   // Modifies the profile to customize its behavior just for this session.
   repeated ProfileProperty custom_profile_properties = 5;
+
+  // Leave unset to not join a tab group. If set, the new tab is added to the
+  // tab group with this identifier (similar to Duplicate Tab behavior). The
+  // group must exist. If window_id is also set, it must refer to the same
+  // window that owns the group; otherwise INVALID_GROUP_ID is returned.
+  // When set and window_id is unset, the new tab is created in the group's
+  // owning window rather than in a new window.
+  optional string group_id = 6;
 }
 
 message CreateTabResponse {
@@ -1593,6 +1601,9 @@ message CreateTabResponse {
     INVALID_TAB_INDEX = 3;
     // A $$VAR$$ substitution was not provided by the user.
     MISSING_SUBSTITUTION = 4;
+    // No open tab group has the requested identifier, or the identifier
+    // refers to a group in a different window than the one requested.
+    INVALID_GROUP_ID = 5;
   }
   optional Status status = 1;
   optional string window_id = 2;

@@ -27,6 +27,7 @@
 @class iTermBrowserWebView;
 @class iTermPromptOnCloseReason;
 @class iTermSessionFactory;
+@class iTermTabGroup;
 @class iTermToolbeltView;
 @protocol iTermLargeContentProvider;
 @protocol iTermWindowScope;
@@ -451,6 +452,11 @@ extern NSString *const iTermDidCreateTerminalWindowNotification;
                  baseProfile:(Profile *)base
              nearSessionGuid:(NSString *)sessionGuid
                     vertical:(BOOL)vertical;
+
+#pragma mark - Tab Groups
+
+- (NSArray<iTermTabGroup *> *)tabGroups;
+- (void)addTab:(PTYTab *)tab toGroup:(iTermTabGroup *)group;
 
 @end
 

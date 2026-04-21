@@ -1009,6 +1009,12 @@ typedef GPB_ENUM(ITMCreateTabResponse_Status) {
 
   /** A $VAR$ substitution was not provided by the user. */
   ITMCreateTabResponse_Status_MissingSubstitution = 4,
+
+  /**
+   * No open tab group has the requested identifier, or the identifier
+   * refers to a group in a different window than the one requested.
+   **/
+  ITMCreateTabResponse_Status_InvalidGroupId = 5,
 };
 
 GPBEnumDescriptor *ITMCreateTabResponse_Status_EnumDescriptor(void);
@@ -5295,6 +5301,7 @@ typedef GPB_ENUM(ITMCreateTabRequest_FieldNumber) {
   ITMCreateTabRequest_FieldNumber_TabIndex = 3,
   ITMCreateTabRequest_FieldNumber_Command = 4,
   ITMCreateTabRequest_FieldNumber_CustomProfilePropertiesArray = 5,
+  ITMCreateTabRequest_FieldNumber_GroupId = 6,
 };
 
 GPB_FINAL @interface ITMCreateTabRequest : GPBMessage
@@ -5322,6 +5329,15 @@ GPB_FINAL @interface ITMCreateTabRequest : GPBMessage
 @property(nonatomic, readwrite, strong, null_resettable) NSMutableArray<ITMProfileProperty*> *customProfilePropertiesArray;
 /** The number of items in @c customProfilePropertiesArray without causing the array to be created. */
 @property(nonatomic, readonly) NSUInteger customProfilePropertiesArray_Count;
+
+/**
+ * Leave unset to not join a tab group. If set, the new tab is added to the
+ * tab group with this identifier. The group must exist. If window_id is also
+ * set, it must refer to the same window that owns the group.
+ **/
+@property(nonatomic, readwrite, copy, null_resettable) NSString *groupId;
+/** Test to see if @c groupId has been set. */
+@property(nonatomic, readwrite) BOOL hasGroupId;
 
 @end
 
