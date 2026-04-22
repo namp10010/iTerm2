@@ -987,7 +987,19 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
 
 ITERM_WEAKLY_REFERENCEABLE
 
+static NSString *iTermGroupIdFilePath(NSString *sessionId) {
+    NSString *sanitized = [sessionId stringByReplacingOccurrencesOfString:@":" withString:@"_"];
+    return [NSString stringWithFormat:@"/tmp/iterm2-%@.group", sanitized];
+}
+
+- (void)notifyGroupIdChanged {
+    NSString *groupId = [_delegate tabGroupIdentifierForSession:self] ?: @"";
+    NSString *path = iTermGroupIdFilePath(self.sessionId);
+    [groupId writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+}
+
 - (void)dealloc {
+    [[NSFileManager defaultManager] removeItemAtPath:iTermGroupIdFilePath(self.sessionId) error:nil];
     [NSApp removeObserver:self forKeyPath:@"effectiveAppearance"];
     NSString *guid = [_guid copy];
     dispatch_async(dispatch_get_main_queue(), ^{

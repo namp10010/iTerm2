@@ -53,7 +53,25 @@ if begin; status --is-interactive; and not functions -q -- iterm2_status; and te
     end
 
     # Tell terminal to create a mark at this location
+    function iterm2_sync_group_id
+      if not set -q ITERM_SESSION_ID
+        return
+      end
+      set -l __iterm2_group_file "/tmp/iterm2-"(string replace -a ':' '_' $ITERM_SESSION_ID)".group"
+      if not test -f $__iterm2_group_file
+        return
+      end
+      set -l __iterm2_new_group (cat $__iterm2_group_file)
+      /bin/rm -f $__iterm2_group_file
+      if test -n "$__iterm2_new_group"
+        set -gx ITERM_GROUP_ID $__iterm2_new_group
+      else
+        set -e ITERM_GROUP_ID
+      end
+    end
+
     function iterm2_preexec --on-event fish_preexec
+      iterm2_sync_group_id
       # For other shells we would output status here but we can't do that in fish.
       if not is_fish_4_1_or_later
         if test "$TERM_PROGRAM" = "iTerm.app"
@@ -91,6 +109,8 @@ if begin; status --is-interactive; and not functions -q -- iterm2_status; and te
 
     function iterm2_common_prompt
       set -l last_status $status
+
+      iterm2_sync_group_id
 
       iterm2_status $last_status
       iterm2_write_remotehost_currentdir_uservars

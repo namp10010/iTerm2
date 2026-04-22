@@ -128,8 +128,23 @@ if [[ -o interactive ]]; then
       ITERM2_DECORATED_PS1="$PS1"
     }
 
+    iterm2_sync_group_id() {
+      [[ -z "${ITERM_SESSION_ID}" ]] && return
+      local __iterm2_group_file="/tmp/iterm2-${ITERM_SESSION_ID//:/_}.group"
+      [[ -f "$__iterm2_group_file" ]] || return
+      local __iterm2_new_group
+      __iterm2_new_group=$(< "$__iterm2_group_file")
+      rm -f "$__iterm2_group_file"
+      if [[ -n "$__iterm2_new_group" ]]; then
+        export ITERM_GROUP_ID="$__iterm2_new_group"
+      else
+        unset ITERM_GROUP_ID
+      fi
+    }
+
     iterm2_precmd() {
       local STATUS="$?"
+      iterm2_sync_group_id
       if [ -z "${ITERM2_SHOULD_DECORATE_PROMPT-}" ]; then
         # You pressed ^C while entering a command (iterm2_preexec did not run)
         iterm2_before_cmd_executes
@@ -148,6 +163,7 @@ if [[ -o interactive ]]; then
 
     # This is not run if you press ^C while entering a command.
     iterm2_preexec() {
+      iterm2_sync_group_id
       # Set PS1 back to its raw value prior to executing the command.
       PS1="$ITERM2_PRECMD_PS1"
       ITERM2_SHOULD_DECORATE_PROMPT="1"

@@ -541,6 +541,8 @@ __iterm2_preexec() {
     # Save the returned value from our last command
     __iterm2_last_ret_value="$?"
 
+    __iterm2_sync_group_id
+
     iterm2_begin_osc
     printf "133;C;"
     iterm2_maybe_print_cr
@@ -559,8 +561,23 @@ __iterm2_preexec() {
 
 # Prints the current directory and hostname control sequences. Modifies PS1 to
 # add the FinalTerm A and B codes to locate the prompt.
+function __iterm2_sync_group_id () {
+    [[ -z "${ITERM_SESSION_ID}" ]] && return
+    local __iterm2_group_file="/tmp/iterm2-${ITERM_SESSION_ID//:/_}.group"
+    [[ -f "$__iterm2_group_file" ]] || return
+    local __iterm2_new_group
+    __iterm2_new_group=$(< "$__iterm2_group_file")
+    rm -f "$__iterm2_group_file"
+    if [[ -n "$__iterm2_new_group" ]]; then
+      export ITERM_GROUP_ID="$__iterm2_new_group"
+    else
+      unset ITERM_GROUP_ID
+    fi
+}
+
 function __iterm2_prompt_command () {
     __iterm2_last_ret_value="$?"
+    __iterm2_sync_group_id
 
     if [[ -z "${iterm2_ran_preexec:-}" ]]
     then

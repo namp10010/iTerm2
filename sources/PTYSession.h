@@ -628,6 +628,7 @@ backgroundColor:(NSColor *)backgroundColor;
 @property(nonatomic) BOOL shortLivedSingleUse;
 @property(nonatomic, retain) NSMutableDictionary<NSString *, NSString *> *hostnameToShell;  // example.com -> fish
 @property(nonatomic, readonly) NSString *sessionId;
+- (void)notifyGroupIdChanged;
 @property(nonatomic, retain) NSNumber *cursorTypeOverride;
 @property(nonatomic, readonly) NSDictionary *environment;
 @property(nonatomic, readonly) BOOL hasNontrivialJob;

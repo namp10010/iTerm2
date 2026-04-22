@@ -5813,7 +5813,13 @@ typedef struct {
 }
 
 - (void)setTabGroup:(iTermTabGroup *)tabGroup {
+    if (_tabGroup == tabGroup) {
+        return;
+    }
     _tabGroup = tabGroup;
+    for (PTYSession *session in self.sessions) {
+        [session notifyGroupIdChanged];
+    }
 }
 
 - (void)setTitleOverride:(NSString *)titleOverride {
