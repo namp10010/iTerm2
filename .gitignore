@@ -96,3 +96,6 @@ vendor/
 *.log
 coverage/
 .cache/
+
+# Claude Code superpowers docs
+docs/superpowers/
