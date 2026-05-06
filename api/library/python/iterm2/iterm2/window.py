@@ -307,7 +307,8 @@ class Window:
             index: typing.Optional[int] = None,
             profile_customizations: typing.Optional[
                 iterm2.profile.LocalWriteOnlyProfile] = None,
-            group_id: typing.Optional[str] = None) -> typing.Optional[
+            group_id: typing.Optional[str] = None,
+            badge: typing.Optional[str] = None) -> typing.Optional[
                     iterm2.tab.Tab]:
         """
         Creates a new tab in this window.
@@ -325,6 +326,9 @@ class Window:
             add the new tab to. If `None`, the tab does not join a group. If
             the identifier does not match any group in this window,
             `CreateTabException` is raised.
+        :param badge: Badge format string to set on the new session at
+            runtime. If `None`, the session uses the badge from its profile.
+            The profile is not modified.
 
         :returns: :class:`Tab` or `None` if the session closed right away.
 
@@ -346,7 +350,8 @@ class Window:
             window=self.__window_id,
             index=index,
             profile_customizations=custom_dict,
-            group_id=group_id)
+            group_id=group_id,
+            badge=badge)
         # pylint: disable=no-member
         if (result.create_tab_response.status ==
                 iterm2.api_pb2.CreateTabResponse.Status.Value("OK")):

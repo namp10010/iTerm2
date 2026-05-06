@@ -21,6 +21,7 @@
 #import "NSStringITerm.h"
 #import "NSWorkspace+iTerm.h"
 #import "PTYSession.h"
+#import "PTYSession+Private.h"
 #import "PTYTab.h"
 #import "PreferencePanel.h"
 #import "ProfileModel.h"
@@ -2451,6 +2452,10 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
         } else {
             status = ITMCreateTabResponse_Status_InvalidGroupId;
         }
+    }
+
+    if (request.hasBadgeText) {
+        session.badgeFormat = request.badgeText;
     }
 
     ITMCreateTabResponse *response = [[ITMCreateTabResponse alloc] init];

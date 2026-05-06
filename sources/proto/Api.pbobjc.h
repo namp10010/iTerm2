@@ -5302,6 +5302,7 @@ typedef GPB_ENUM(ITMCreateTabRequest_FieldNumber) {
   ITMCreateTabRequest_FieldNumber_Command = 4,
   ITMCreateTabRequest_FieldNumber_CustomProfilePropertiesArray = 5,
   ITMCreateTabRequest_FieldNumber_GroupId = 6,
+  ITMCreateTabRequest_FieldNumber_BadgeText = 7,
 };
 
 GPB_FINAL @interface ITMCreateTabRequest : GPBMessage
@@ -5338,6 +5339,14 @@ GPB_FINAL @interface ITMCreateTabRequest : GPBMessage
 @property(nonatomic, readwrite, copy, null_resettable) NSString *groupId;
 /** Test to see if @c groupId has been set. */
 @property(nonatomic, readwrite) BOOL hasGroupId;
+
+/**
+ * If set, overrides the badge format on the new session at runtime. The
+ * session's profile is not modified.
+ **/
+@property(nonatomic, readwrite, copy, null_resettable) NSString *badgeText;
+/** Test to see if @c badgeText has been set. */
+@property(nonatomic, readwrite) BOOL hasBadgeText;
 
 @end
 

@@ -13194,6 +13194,7 @@ typedef struct ITMListSessionsResponse_Tab__storage_ {
 @dynamic hasCommand, command;
 @dynamic customProfilePropertiesArray, customProfilePropertiesArray_Count;
 @dynamic hasGroupId, groupId;
+@dynamic hasBadgeText, badgeText;
 
 typedef struct ITMCreateTabRequest__storage_ {
   uint32_t _has_storage_[1];
@@ -13203,6 +13204,7 @@ typedef struct ITMCreateTabRequest__storage_ {
   NSString *command;
   NSMutableArray *customProfilePropertiesArray;
   NSString *groupId;
+  NSString *badgeText;
 } ITMCreateTabRequest__storage_;
 
 // This method is threadsafe because it is initially called
@@ -13262,6 +13264,15 @@ typedef struct ITMCreateTabRequest__storage_ {
         .number = ITMCreateTabRequest_FieldNumber_GroupId,
         .hasIndex = 4,
         .offset = (uint32_t)offsetof(ITMCreateTabRequest__storage_, groupId),
+        .flags = GPBFieldOptional,
+        .dataType = GPBDataTypeString,
+      },
+      {
+        .name = "badgeText",
+        .dataTypeSpecific.clazz = Nil,
+        .number = ITMCreateTabRequest_FieldNumber_BadgeText,
+        .hasIndex = 5,
+        .offset = (uint32_t)offsetof(ITMCreateTabRequest__storage_, badgeText),
         .flags = GPBFieldOptional,
         .dataType = GPBDataTypeString,
       },

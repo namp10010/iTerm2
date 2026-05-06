@@ -1590,6 +1590,11 @@ message CreateTabRequest {
   // When set and window_id is unset, the new tab is created in the group's
   // owning window rather than in a new window.
   optional string group_id = 6;
+
+  // If set, overrides the badge format on the new session at runtime. The
+  // session's profile is not modified. Any string is accepted; swifty-string
+  // interpolation rules apply (e.g. \\(session.name)).
+  optional string badge_text = 7;
 }
 
 message CreateTabResponse {
