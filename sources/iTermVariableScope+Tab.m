@@ -62,6 +62,14 @@
     [self setValue:newValue forVariableNamed:iTermVariableKeyTabID];
 }
 
+- (NSString *)groupId {
+    return [self valueForVariableName:iTermVariableKeyTabGroupID];
+}
+
+- (void)setGroupId:(NSString *)groupId {
+    [self setValue:groupId forVariableNamed:iTermVariableKeyTabGroupID];
+}
+
 - (iTermVariableScope<iTermWindowScope> *)window {
     return [iTermVariableScope newWindowScopeWithVariables:[self valueForVariableName:iTermVariableKeyTabWindow]
                                               tabVariables:[[self variablesInScopeNamed:nil] lastObject]];
