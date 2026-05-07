@@ -3433,6 +3433,26 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
 
     [theTab setObjectCount:[term numberOfTabs] + 1];
 
+    // Assign the tab GUID before sessions launch so we can wire group membership.
+    NSString *guid = arrangement[TAB_GUID];
+    if (guid) {
+        if ([[iTermController sharedInstance] tabWithGUID:guid] ||
+            [reservedTabGUIDs containsObject:guid]) {
+            theTab->_guid = [[NSUUID UUID] UUIDString];
+        } else {
+            theTab->_guid = arrangement[TAB_GUID];
+        }
+    }
+
+    // Wire the tab into its group BEFORE sessions launch, so each session's
+    // shell environment sees the correct ITERM_GROUP_ID via the delegate.
+    NSDictionary<NSString *, iTermTabGroup *> *tabGroupMap =
+        options[PTYTabArrangementOptionsTabGroupMap];
+    iTermTabGroup *group = theTab->_guid ? tabGroupMap[theTab->_guid] : nil;
+    if (group) {
+        [group addTab:theTab];
+    }
+
     // Instantiate sessions in the skeleton view tree.
     iTermObjectType objectType;
     if ([term numberOfTabs] == 0) {
@@ -3455,15 +3475,6 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
                                                        options:options]];
     theTab.titleOverride = [arrangement[TAB_ARRANGEMENT_TITLE_OVERRIDE] nilIfNull];
     theTab->_pinned = [arrangement[TAB_ARRANGEMENT_PINNED] boolValue];
-    NSString *guid = arrangement[TAB_GUID];
-    if (guid) {
-        if ([[iTermController sharedInstance] tabWithGUID:guid] ||
-            [reservedTabGUIDs containsObject:guid]) {
-            theTab->_guid = [[NSUUID UUID] UUIDString];
-        } else {
-            theTab->_guid = arrangement[TAB_GUID];
-        }
-    }
     [theTab updateTmuxTitleMonitor];
     return theTab;
 }
