@@ -3634,17 +3634,19 @@ ITERM_WEAKLY_REFERENCEABLE
     if (self.hotkeyWindowType != iTermHotkeyWindowTypeNone) {
         _suppressMakeCurrentTerminal |= iTermSuppressMakeCurrentTerminalHotkey;
     }
+    NSDictionary<NSString *, iTermTabGroup *> *tabGroupMap =
+        [self prepareTabGroupsFromArrangement:arrangement];
     const BOOL restoreTabsOK = [self restoreTabsFromArrangement:arrangement
                                                           named:arrangementName
                                                        sessions:sessions
                                              partialAttachments:partialAttachments
-                                           largeContentProvider:largeContentProvider];
+                                           largeContentProvider:largeContentProvider
+                                                    tabGroupMap:tabGroupMap];
     _suppressMakeCurrentTerminal &= ~iTermSuppressMakeCurrentTerminalHotkey;
     _restoringWindow = savedRestoringWindow;
     if (!restoreTabsOK) {
         return NO;
     }
-    [self restoreTabGroupsFromArrangement:arrangement];
     if (arrangement[TERMINAL_ARRANGEMENT_USE_TRANSPARENCY]) {
         useTransparency_ = [arrangement[TERMINAL_ARRANGEMENT_USE_TRANSPARENCY] boolValue];
     }
@@ -3793,7 +3795,8 @@ ITERM_WEAKLY_REFERENCEABLE
                              named:(NSString *)arrangementName
                           sessions:(NSArray<PTYSession *> *)sessions
                 partialAttachments:(NSDictionary *)partialAttachments
-              largeContentProvider:(id<iTermLargeContentProvider>)largeContentProvider {
+              largeContentProvider:(id<iTermLargeContentProvider>)largeContentProvider
+                       tabGroupMap:(NSDictionary<NSString *, iTermTabGroup *> *)tabGroupMap {
     BOOL openedAny = NO;
     for (NSDictionary *tabArrangement in arrangement[TERMINAL_ARRANGEMENT_TABS]) {
         NSDictionary<NSString *, PTYSession *> *sessionMap = nil;
@@ -3806,6 +3809,9 @@ ITERM_WEAKLY_REFERENCEABLE
         }
         if (largeContentProvider) {
             options[PTYSessionArrangementOptionsLargeContentProvider] = largeContentProvider;
+        }
+        if (tabGroupMap.count > 0) {
+            options[PTYTabArrangementOptionsTabGroupMap] = tabGroupMap;
         }
         if (![self openTabWithArrangement:tabArrangement
                                     named:arrangementName
@@ -12438,38 +12444,40 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
     return _tabGroups;
 }
 
-- (void)restoreTabGroupsFromArrangement:(NSDictionary *)arrangement {
+// Builds iTermTabGroup objects from the arrangement and returns a map of
+// tab GUID -> group. The groups are added to _tabGroups now (without their
+// member tabs); each tab will wire itself into its group during its own
+// restoration via [group addTab:tab] in tabWithArrangement:.
+- (NSDictionary<NSString *, iTermTabGroup *> *)prepareTabGroupsFromArrangement:(NSDictionary *)arrangement {
     NSArray *groupDicts = arrangement[TERMINAL_ARRANGEMENT_TAB_GROUPS];
     if (![groupDicts isKindOfClass:[NSArray class]]) {
-        return;
+        return @{};
     }
-    NSMutableDictionary<NSString *, PTYTab *> *guidToTab = [NSMutableDictionary dictionary];
-    for (PTYTab *tab in self.tabs) {
-        guidToTab[tab.stringUniqueIdentifier] = tab;
-    }
+    NSMutableDictionary<NSString *, iTermTabGroup *> *tabGuidToGroup = [NSMutableDictionary dictionary];
     for (NSDictionary *gd in groupDicts) {
-        NSString *identifier = gd[TAB_GROUP_ARRANGEMENT_IDENTIFIER];
+        NSString *guid = gd[TAB_GROUP_ARRANGEMENT_IDENTIFIER];
         NSString *colorHex = gd[TAB_GROUP_ARRANGEMENT_COLOR];
         NSColor *color = [NSColor colorFromHexString:colorHex];
-        if (!color) {
+        if (!guid || !color) {
             continue;
         }
         NSString *name = gd[TAB_GROUP_ARRANGEMENT_NAME];
-        iTermTabGroup *group = [[[iTermTabGroup alloc] initWithGuid:identifier
+        iTermTabGroup *group = [[[iTermTabGroup alloc] initWithGuid:guid
                                                               color:color
                                                                name:name] autorelease];
         group.collapsed = [gd[TAB_GROUP_ARRANGEMENT_COLLAPSED] boolValue];
+        [_tabGroups addObject:group];
         NSArray *tabGUIDs = gd[TAB_GROUP_ARRANGEMENT_TAB_GUIDS];
-        for (NSString *guid in tabGUIDs) {
-            PTYTab *tab = guidToTab[guid];
-            if (tab && !tab.tabGroup) {
-                [group addTab:tab];
+        if (![tabGUIDs isKindOfClass:[NSArray class]]) {
+            continue;
+        }
+        for (NSString *tabGuid in tabGUIDs) {
+            if ([tabGuid isKindOfClass:[NSString class]]) {
+                tabGuidToGroup[tabGuid] = group;
             }
         }
-        if (![group isEmpty]) {
-            [_tabGroups addObject:group];
-        }
     }
+    return tabGuidToGroup;
 }
 
 - (iTermTabGroup *)createTabGroupWithTab:(PTYTab *)tab {
