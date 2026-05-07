@@ -21,6 +21,7 @@ extern NSString *const iTermVariableKeyTabTitleOverride;
 extern NSString *const iTermVariableKeyTabTitleOverrideFormat;
 extern NSString *const iTermVariableKeyTabCurrentSession;
 extern NSString *const iTermVariableKeyTabID;
+extern NSString *const iTermVariableKeyTabGroupID;
 extern NSString *const iTermVariableKeyTabTmuxWindowTitle;  // #{T:set-titles-string} for a particular tmux window
 extern NSString *const iTermVariableKeyTabTmuxWindowName;
 extern NSString *const iTermVariableKeyTabWindow;

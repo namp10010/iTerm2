@@ -39,6 +39,7 @@ NSString *const iTermVariableKeyTabTmuxWindowName = @"tmuxWindowName";
 NSString *const iTermVariableKeyTabCurrentSession = @"currentSession";
 NSString *const iTermVariableKeyTabTmuxWindow = @"tmuxWindow";
 NSString *const iTermVariableKeyTabID = @"id";
+NSString *const iTermVariableKeyTabGroupID = @"group_id";
 NSString *const iTermVariableKeyTabWindow = @"window";
 NSString *const iTermVariableKeyTabTitle = @"title";
 
