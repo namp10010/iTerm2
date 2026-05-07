@@ -277,7 +277,16 @@ Nightly: force
 	xcodebuild -scheme iTerm2 -configuration Nightly -destination 'platform=macOS' -skipPackagePluginValidation $(SIGNING_FLAGS) $(ARCH_FLAGS) SYMROOT="$(BUILD_DIR)" ENABLE_ADDRESS_SANITIZER=NO
 	chmod -R go+rX $(BUILD_DIR)/Nightly
 
-run: Development
+python-sdk:
+	@pip="$(HOME)/Library/Application Support/iTerm2/iterm2env-78/versions/3.10.4/bin/pip3"; \
+	if [ -x "$$pip" ]; then \
+		"$$pip" install --no-deps --quiet $(CURDIR)/api/library/python/iterm2 2>/dev/null; \
+		echo "Python SDK installed into iTerm2 runtime"; \
+	else \
+		echo "iTerm2 Python runtime not found (run the app once to download it)"; \
+	fi
+
+run: Development python-sdk
 	$(BUILD_DIR)/Development/iTerm2.app/Contents/MacOS/iTerm2 -suite iterm2-dev
 
 devzip: Development

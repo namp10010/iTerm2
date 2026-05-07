@@ -66,6 +66,10 @@ tools/             Build scripts (build.sh, add_file_to_xcodeproj.rb, run_tests.
 submodules/        Git submodules (Sparkle, CoreParse, NMSSH, etc.)
 ```
 
+## Python SDK Local Testing
+
+The iTerm2 Python runtime (`iterm2env-78`) is a pre-built zip downloaded on first launch. It does **not** pick up source changes from `api/library/python/iterm2/` automatically. `make run` handles this -- it runs `make python-sdk` before launching, which pip-installs the source package into all runtime Python environments. You can also run `make python-sdk` independently. Restart the Python console (Scripts → Manage → Console) to pick up changes in a running app.
+
 ## Code Best Practices
 
 - Don’t write more than one line of inline javascript, html, or CSS. Instead create a new file and load it using iTermBrowserTemplateLoader.swift.
