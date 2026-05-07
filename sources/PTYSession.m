@@ -613,7 +613,6 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
     // will differ from its real GUID. It only serves to find the session in the arrangement to
     // make repairs.
     NSString *_arrangementGUID;
-    NSString *_groupId;  // Tab group identifier, restored from arrangement for ITERM_GROUP_ID.
 
     VT100GridSize _savedGridSize;
 
@@ -1127,7 +1126,6 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
     [_composerManager release];
     [_tmuxClientWritePipe release];
     [_arrangementGUID release];
-    [_groupId release];
     [_triggerWindowController release];
     [_filter release];
     [_asyncFilter cancel];
@@ -2026,9 +2024,6 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
 
         // GUID will be set for new saved arrangements since late 2014.
         // Older versions won't be able to associate saved state with windows from a saved arrangement.
-        if (arrangement[SESSION_ARRANGEMENT_GROUP_ID]) {
-            aSession->_groupId = [arrangement[SESSION_ARRANGEMENT_GROUP_ID] copy];
-        }
         if (arrangement[SESSION_ARRANGEMENT_GUID]) {
             DLog(@"The session arrangement has a GUID");
             NSString *guid = arrangement[SESSION_ARRANGEMENT_GUID];
@@ -2931,7 +2926,7 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
         env[@"TERM_FEATURES"] = [VT100Output encodedTermFeaturesForCapabilities:[self capabilities]];
     }
     env[@"ITERM_SESSION_ID"] = itermId;
-    NSString *groupId = _groupId ?: [_delegate tabGroupIdentifierForSession:self];
+    NSString *groupId = [_delegate tabGroupIdentifierForSession:self];
     if (groupId) {
         env[@"ITERM_GROUP_ID"] = groupId;
     }
