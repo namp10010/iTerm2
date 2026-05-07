@@ -1298,7 +1298,7 @@ replaceInitialDirectoryForSessionWithGUID:(NSString *)guid
     }
     for (PseudoTerminal *term in [self terminals]) {
         for (iTermTabGroup *group in [term tabGroups]) {
-            if ([group.identifier isEqualToString:identifier]) {
+            if ([group.guid isEqualToString:identifier]) {
                 if (outGroup) {
                     *outGroup = group;
                 }

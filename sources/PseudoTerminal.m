@@ -3978,7 +3978,7 @@ ITERM_WEAKLY_REFERENCEABLE
         NSMutableArray *groupDicts = [NSMutableArray array];
         for (iTermTabGroup *group in _tabGroups) {
             NSMutableDictionary *gd = [NSMutableDictionary dictionary];
-            gd[TAB_GROUP_ARRANGEMENT_IDENTIFIER] = group.identifier;
+            gd[TAB_GROUP_ARRANGEMENT_IDENTIFIER] = group.guid;
             if (group.name) {
                 gd[TAB_GROUP_ARRANGEMENT_NAME] = group.name;
             }
@@ -12455,9 +12455,9 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
             continue;
         }
         NSString *name = gd[TAB_GROUP_ARRANGEMENT_NAME];
-        iTermTabGroup *group = [[[iTermTabGroup alloc] initWithIdentifier:identifier
-                                                                    color:color
-                                                                     name:name] autorelease];
+        iTermTabGroup *group = [[[iTermTabGroup alloc] initWithGuid:identifier
+                                                              color:color
+                                                               name:name] autorelease];
         group.collapsed = [gd[TAB_GROUP_ARRANGEMENT_COLLAPSED] boolValue];
         NSArray *tabGUIDs = gd[TAB_GROUP_ARRANGEMENT_TAB_GUIDS];
         for (NSString *guid in tabGUIDs) {

@@ -1667,7 +1667,7 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
 }
 
 - (NSString *)tabGroupIdentifierForSession:(PTYSession *)session {
-    return self.tabGroup.identifier;
+    return self.tabGroup.guid;
 }
 
 - (int)tabNumberForItermSessionId {

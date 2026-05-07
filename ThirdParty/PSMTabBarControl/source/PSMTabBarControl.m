@@ -1211,7 +1211,7 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
                 if ([_delegate respondsToSelector:@selector(isGroupCollapsed:)]) {
                     currentGroupCollapsed = [_delegate isGroupCollapsed:group];
                 }
-                NSString *groupId = [group identifier];
+                NSString *groupId = [group guid];
                 PSMTabBarCell *header = _groupHeaderCellCache[groupId];
                 if (!header) {
                     header = [[PSMTabBarCell alloc] initGroupHeaderWithFrame:NSZeroRect
@@ -1293,7 +1293,7 @@ PSMTabBarControlOptionKey PSMTabBarControlOptionPUAFontProvider = @"PSMTabBarCon
     NSMutableSet *activeGroupIds = [NSMutableSet set];
     for (PSMTabBarCell *cell in _displayCells) {
         if (cell.isGroupHeader) {
-            NSString *gid = [cell.groupIdentifier identifier];
+            NSString *gid = [cell.groupIdentifier guid];
             if (gid) {
                 [activeGroupIds addObject:gid];
             }

@@ -10,7 +10,7 @@ extern NSArray<NSColor *> *iTermTabGroupPresetColors(void);
 
 @interface iTermTabGroup : NSObject
 
-@property (nonatomic, copy, readonly) NSString *identifier;
+@property (nonatomic, copy, readonly) NSString *guid;
 @property (nonatomic, copy, nullable) NSString *name;
 @property (nonatomic, strong) NSColor *color;
 @property (nonatomic, getter=isCollapsed) BOOL collapsed;
@@ -18,9 +18,9 @@ extern NSArray<NSColor *> *iTermTabGroupPresetColors(void);
 
 - (instancetype)initWithColor:(NSColor *)color;
 - (instancetype)initWithColor:(NSColor *)color name:(nullable NSString *)name;
-- (instancetype)initWithIdentifier:(NSString *)identifier
-                             color:(NSColor *)color
-                              name:(nullable NSString *)name;
+- (instancetype)initWithGuid:(NSString *)guid
+                       color:(NSColor *)color
+                        name:(nullable NSString *)name;
 
 - (void)addTab:(PTYTab *)tab;
 - (void)insertTab:(PTYTab *)tab atIndex:(NSUInteger)index;
