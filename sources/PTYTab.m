@@ -3665,6 +3665,7 @@ NSString *const PTYTabArrangementOptionsOnlySessionID = @"PTYTabArrangementOptio
 NSString *const PTYTabArrangementOptionsReplacementProfile = @"PTYTabArrangementOptionsReplacementProfile";
 NSString *const PTYTabArrangementOptionsReplacementSaveProgram = @"PTYTabArrangementOptionsReplacementSaveProgram";
 NSString *const PTYTabArrangementOptionsPendingJumps = @"PTYTabArrangementOptionsPendingJumps";
+NSString *const PTYTabArrangementOptionsTabGroupMap = @"PTYTabArrangementOptionsTabGroupMap";
 
 // This method used to take a gross shortcut and call -unmaximize and
 // -maximize. Because we support 10.7 window restoration, it gets called
