@@ -5817,6 +5817,7 @@ typedef struct {
         return;
     }
     _tabGroup = tabGroup;
+    self.variablesScope.groupId = tabGroup.guid;
     for (PTYSession *session in self.sessions) {
         [session notifyGroupIdChanged];
     }
