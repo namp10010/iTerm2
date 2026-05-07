@@ -107,6 +107,21 @@ class Tab:
         """
         return self.__tab_id
 
+    async def async_get_group_id(self) -> typing.Optional[str]:
+        """
+        Returns the tab's current tab-group identifier, or None if the
+        tab is not in a group.
+
+        The value tracks the live group membership: if the tab is dragged
+        into or out of a group the next call returns the updated value.
+
+        :returns: The group's UUID string, or None.
+        """
+        value = await self.async_get_variable("group_id")
+        if isinstance(value, str) and value:
+            return value
+        return None
+
     @property
     def sessions(self) -> typing.List['iterm2.session.Session']:
         """
