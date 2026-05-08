@@ -94,6 +94,7 @@ extern NSString *const iTermAdvancedSettingsDidChange;
 + (NSString *)badgeFont;
 + (BOOL)badgeFontIsBold;
 + (double)badgeMaxHeightFraction;
++ (double)badgeMaxPointSize;
 + (double)badgeMaxWidthFraction;
 + (int)badgeRightMargin;
 + (int)badgeTopMargin;

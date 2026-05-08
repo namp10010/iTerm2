@@ -29,6 +29,7 @@ static const CGFloat iTermBadgeConfigurationBadgeViewInset = 3;
 - (void)badgeViewFrameDidChange:(NSRect)frame;
 - (Profile *)badgeViewProfile;
 - (NSFont *)badgeViewFont;
+- (CGFloat)badgeViewMaxPointSize;
 @end
 
 @interface iTermBadgeConfigurationBadgeView : NSBox<iTermBadgeLabelDelegate>
@@ -60,7 +61,7 @@ typedef struct {
     if (self) {
         _badge = [[iTermBadgeLabel alloc] init];
         _badge.minimumPointSize = 1;
-        _badge.maximumPointSize = 200;
+        _badge.maximumPointSize = 200;  // Will be overridden from delegate once it's set.
         _badge.delegate = self;
         _badge.fillColor = [NSColor blackColor];
         _badge.backgroundColor = [NSColor redColor];
@@ -80,6 +81,7 @@ typedef struct {
         const BOOL dark = [NSApp effectiveAppearance].it_isDark;
         _badge.fillColor = [[iTermProfilePreferences colorForKey:KEY_BADGE_COLOR dark:dark profile:profile] colorWithAlphaComponent:1];
         _badge.backgroundColor = [NSColor clearColor];
+        _badge.maximumPointSize = [delegate badgeViewMaxPointSize];
         _loremIpsum.image = [_badge image];
         NSColor *backgroundColor = [iTermProfilePreferences colorForKey:KEY_BACKGROUND_COLOR
                                                                    dark:dark
@@ -329,6 +331,7 @@ typedef struct {
 
 - (void)layoutSubviews {
     _badge.dirty = YES;
+    _badge.maximumPointSize = [self.delegate badgeViewMaxPointSize];
     _badge.viewSize = NSMakeSize(self.superview.bounds.size.width,
                                  self.superview.bounds.size.height);
     _loremIpsum.image = [_badge image];
@@ -337,6 +340,7 @@ typedef struct {
 
 - (void)reload {
     _badge.dirty = YES;
+    _badge.maximumPointSize = [self.delegate badgeViewMaxPointSize];
     _loremIpsum.image = [_badge image];
     [self updateImageViewFrame];
 }
@@ -361,6 +365,7 @@ typedef struct {
 @property (nonatomic, strong) IBOutlet NSTextField *maxHeightTextField;
 @property (nonatomic, strong) IBOutlet NSTextField *rightMarginTextField;
 @property (nonatomic, strong) IBOutlet NSTextField *topMarginTextField;
+@property (nonatomic, strong) IBOutlet NSTextField *maxPointSizeTextField;
 @property (nonatomic, strong) IBOutlet NSBox *fakeSessionView;
 @property (nonatomic, strong) IBOutlet iTermBadgeConfigurationBadgeView *badgeView;
 @end
@@ -415,6 +420,7 @@ typedef struct {
     const CGFloat topMargin = [iTermProfilePreferences doubleForKey:KEY_BADGE_TOP_MARGIN inProfile:_profile];
     const CGFloat maxWidth = [iTermProfilePreferences doubleForKey:KEY_BADGE_MAX_WIDTH inProfile:_profile];
     const CGFloat maxHeight = [iTermProfilePreferences doubleForKey:KEY_BADGE_MAX_HEIGHT inProfile:_profile];
+    const CGFloat maxPointSize = [iTermProfilePreferences doubleForKey:KEY_BADGE_MAX_POINT_SIZE inProfile:_profile];
 
     _fontPicker.font = self.font;
     _fontPicker.delegate = self;
@@ -424,6 +430,7 @@ typedef struct {
     _maxHeightTextField.doubleValue = MIN(0.95, maxHeight) * 100.0;
     _rightMarginTextField.doubleValue = MAX(0, rightMargin);
     _topMarginTextField.doubleValue = MAX(0, topMargin);
+    _maxPointSizeTextField.doubleValue = MAX(1, maxPointSize);
 
     _badgeView.delegate = self;
     _ignoreFrameChange = YES;
@@ -456,6 +463,7 @@ typedef struct {
               KEY_BADGE_MAX_HEIGHT: @(MIN(0.95, _maxHeightTextField.doubleValue / 100.0)),
               KEY_BADGE_RIGHT_MARGIN: @(_rightMarginTextField.doubleValue),
               KEY_BADGE_TOP_MARGIN: @(_topMarginTextField.doubleValue),
+              KEY_BADGE_MAX_POINT_SIZE: @(MAX(1, _maxPointSizeTextField.doubleValue)),
               KEY_BADGE_FONT: _fontName ?: @"" };
 }
 
@@ -493,6 +501,9 @@ typedef struct {
     _ignoreFrameChange = YES;
     [self setBadgeFrameFromTextFields];
     _ignoreFrameChange = NO;
+    if (obj.object == _maxPointSizeTextField) {
+        [_badgeView reload];
+    }
 }
 
 #pragma mark - iTermBadgeConfigurationBadgeViewDelegate
@@ -515,6 +526,14 @@ typedef struct {
 
 - (NSFont *)badgeViewFont {
     return [self font];
+}
+
+- (CGFloat)badgeViewMaxPointSize {
+    const CGFloat value = _maxPointSizeTextField.doubleValue;
+    if (value > 0) {
+        return value;
+    }
+    return [iTermAdvancedSettingsModel badgeMaxPointSize];
 }
 
 #pragma mark - BFPCompositeViewDelegate

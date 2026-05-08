@@ -5378,6 +5378,7 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     self.badgeFormat = [iTermProfilePreferences stringForKey:KEY_BADGE_FORMAT inProfile:aDict];
     _badgeLabelSizeFraction = NSMakeSize([iTermProfilePreferences floatForKey:KEY_BADGE_MAX_WIDTH inProfile:aDict],
                                          [iTermProfilePreferences floatForKey:KEY_BADGE_MAX_HEIGHT inProfile:aDict]);
+    [_textview setBadgeMaxPointSize:[iTermProfilePreferences floatForKey:KEY_BADGE_MAX_POINT_SIZE inProfile:aDict]];
 
     self.subtitleFormat = [iTermProfilePreferences stringForKey:KEY_SUBTITLE inProfile:aDict];
 

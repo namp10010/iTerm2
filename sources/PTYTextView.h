@@ -767,6 +767,9 @@ extendResultsAcrossSoftBoundaries:(BOOL)extendResultsAcrossSoftBoundaries;
 // A text badge shown in the top right of the window
 - (void)setBadgeLabel:(NSString *)badgeLabel;
 
+// Caps the auto-sized badge font at the given point size.
+- (void)setBadgeMaxPointSize:(CGFloat)pointSize;
+
 // Menu for session title bar hamburger button
 - (NSMenu *)titleBarMenu;
 

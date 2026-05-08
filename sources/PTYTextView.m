@@ -4455,6 +4455,15 @@ static NSString *iTermStringForEventPhase(NSEventPhase eventPhase) {
     [self recomputeBadgeLabel];
 }
 
+- (void)setBadgeMaxPointSize:(CGFloat)pointSize {
+    if (pointSize <= 0 || _badgeLabel.maximumPointSize == pointSize) {
+        return;
+    }
+    _badgeLabel.maximumPointSize = pointSize;
+    _badgeLabel.dirty = YES;
+    [self recomputeBadgeLabel];
+}
+
 - (void)recomputeBadgeLabel {
     if (!_delegate) {
         return;

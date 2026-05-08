@@ -1312,6 +1312,7 @@ typedef struct {
                   KEY_BADGE_RIGHT_MARGIN: PROFILE_BLOCK(badgeRightMargin),
                   KEY_BADGE_MAX_WIDTH: PROFILE_BLOCK(badgeMaxWidth),
                   KEY_BADGE_MAX_HEIGHT: PROFILE_BLOCK(badgeMaxHeight),
+                  KEY_BADGE_MAX_POINT_SIZE: PROFILE_BLOCK(badgeMaxPointSize),
                   KEY_BADGE_FONT: PROFILE_BLOCK(badgeFont),
                   KEY_WINDOW_TYPE: PROFILE_BLOCK(windowType),
                   KEY_BRIGHTEN_BOLD_TEXT: PROFILE_BLOCK(brightenBoldText),
@@ -1452,6 +1453,14 @@ typedef struct {
         return value;
     }
     return @([iTermAdvancedSettingsModel badgeMaxHeightFraction]);
+}
+
++ (id)badgeMaxPointSize:(Profile *)profile {
+    id value = profile[KEY_BADGE_MAX_POINT_SIZE];
+    if (value) {
+        return value;
+    }
+    return @([iTermAdvancedSettingsModel badgeMaxPointSize]);
 }
 
 + (id)windowType:(Profile *)profile {
