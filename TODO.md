@@ -20,3 +20,4 @@
 18. [x] When drag a tab to another group, the tab's group-id didn't get updated -> python sdk to duplicate the tab will make the newly duplicated tab to have the old group id and added to the old group
 19. [ ] When creating new session/tab using python sdk, add optional parameter to set the badge text.
 20. [ ] There are not much customisation available for the badge "/var/folders/k3/4z6jyg6s3gv3t3k7f4yg1ls00000gn/T/EB510465-D93F-4079-AA0A-9209EC1CC1BB-64599-00000558FEB9DCFB/pasted-image-20260506-154256.png". Redesign the badge so it looks less invasive and more professional
+21. [x] Add option to not copy over the badge when duplicating a tab
