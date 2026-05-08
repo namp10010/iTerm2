@@ -30,7 +30,12 @@ static const CGFloat iTermBadgeConfigurationBadgeViewInset = 3;
 - (Profile *)badgeViewProfile;
 - (NSFont *)badgeViewFont;
 - (CGFloat)badgeViewMaxPointSize;
+- (BOOL)badgeViewFontIsBold;
 - (NSColor *)badgeViewHudBackgroundColor;
+- (CGFloat)badgeViewHudTitlePointSize;
+- (CGFloat)badgeViewHudBodyPointSize;
+- (CGFloat)badgeViewHudTitleAlpha;
+- (CGFloat)badgeViewHudBodyAlpha;
 @end
 
 @interface iTermBadgeConfigurationBadgeView : NSBox<iTermBadgeLabelDelegate>
@@ -84,6 +89,10 @@ typedef struct {
         _badge.backgroundColor = [NSColor clearColor];
         _badge.hudBackgroundColor = [delegate badgeViewHudBackgroundColor];
         _badge.maximumPointSize = [delegate badgeViewMaxPointSize];
+        _badge.hudTitlePointSize = [delegate badgeViewHudTitlePointSize];
+        _badge.hudBodyPointSize  = [delegate badgeViewHudBodyPointSize];
+        _badge.hudTitleAlpha     = [delegate badgeViewHudTitleAlpha];
+        _badge.hudBodyAlpha      = [delegate badgeViewHudBodyAlpha];
         _loremIpsum.image = [_badge image];
         NSColor *backgroundColor = [iTermProfilePreferences colorForKey:KEY_BACKGROUND_COLOR
                                                                    dark:dark
@@ -333,8 +342,12 @@ typedef struct {
 
 - (void)layoutSubviews {
     _badge.dirty = YES;
-    _badge.maximumPointSize = [self.delegate badgeViewMaxPointSize];
-    _badge.hudBackgroundColor = [self.delegate badgeViewHudBackgroundColor];
+    _badge.maximumPointSize    = [self.delegate badgeViewMaxPointSize];
+    _badge.hudBackgroundColor  = [self.delegate badgeViewHudBackgroundColor];
+    _badge.hudTitlePointSize   = [self.delegate badgeViewHudTitlePointSize];
+    _badge.hudBodyPointSize    = [self.delegate badgeViewHudBodyPointSize];
+    _badge.hudTitleAlpha       = [self.delegate badgeViewHudTitleAlpha];
+    _badge.hudBodyAlpha        = [self.delegate badgeViewHudBodyAlpha];
     _badge.viewSize = NSMakeSize(self.superview.bounds.size.width,
                                  self.superview.bounds.size.height);
     _loremIpsum.image = [_badge image];
@@ -343,8 +356,12 @@ typedef struct {
 
 - (void)reload {
     _badge.dirty = YES;
-    _badge.maximumPointSize = [self.delegate badgeViewMaxPointSize];
-    _badge.hudBackgroundColor = [self.delegate badgeViewHudBackgroundColor];
+    _badge.maximumPointSize    = [self.delegate badgeViewMaxPointSize];
+    _badge.hudBackgroundColor  = [self.delegate badgeViewHudBackgroundColor];
+    _badge.hudTitlePointSize   = [self.delegate badgeViewHudTitlePointSize];
+    _badge.hudBodyPointSize    = [self.delegate badgeViewHudBodyPointSize];
+    _badge.hudTitleAlpha       = [self.delegate badgeViewHudTitleAlpha];
+    _badge.hudBodyAlpha        = [self.delegate badgeViewHudBodyAlpha];
     _loremIpsum.image = [_badge image];
     [self updateImageViewFrame];
 }
@@ -353,7 +370,11 @@ typedef struct {
 
 - (NSFont *)badgeLabelFontOfSize:(CGFloat)pointSize {
     NSFont *font = [self.delegate badgeViewFont];
-    return [NSFont fontWithName:font.fontName size:pointSize];
+    font = [NSFont fontWithName:font.fontName size:pointSize];
+    if ([self.delegate badgeViewFontIsBold]) {
+        font = [[NSFontManager sharedFontManager] convertFont:font toHaveTrait:NSBoldFontMask];
+    }
+    return font;
 }
 
 - (NSSize)badgeLabelSizeFraction {
@@ -370,7 +391,12 @@ typedef struct {
 @property (nonatomic, strong) IBOutlet NSTextField *rightMarginTextField;
 @property (nonatomic, strong) IBOutlet NSTextField *topMarginTextField;
 @property (nonatomic, strong) IBOutlet NSTextField *maxPointSizeTextField;
+@property (nonatomic, strong) IBOutlet NSButton *boldCheckbox;
 @property (nonatomic, strong) IBOutlet NSColorWell *hudBackgroundColorWell;
+@property (nonatomic, strong) IBOutlet NSTextField *hudTitlePointSizeTextField;
+@property (nonatomic, strong) IBOutlet NSTextField *hudBodyPointSizeTextField;
+@property (nonatomic, strong) IBOutlet NSTextField *hudTitleAlphaTextField;
+@property (nonatomic, strong) IBOutlet NSTextField *hudBodyAlphaTextField;
 @property (nonatomic, strong) IBOutlet NSBox *fakeSessionView;
 @property (nonatomic, strong) IBOutlet iTermBadgeConfigurationBadgeView *badgeView;
 @end
@@ -441,7 +467,12 @@ typedef struct {
     NSColor *hudBgColor = [iTermProfilePreferences colorForKey:KEY_BADGE_HUD_BACKGROUND_COLOR
                                                           dark:dark
                                                        profile:_profile];
-    _hudBackgroundColorWell.color = hudBgColor ?: [NSColor colorWithCalibratedRed:0.03 green:0.08 blue:0.19 alpha:0.82];
+    _boldCheckbox.state = [iTermProfilePreferences boolForKey:KEY_BADGE_FONT_IS_BOLD inProfile:_profile] ? NSControlStateValueOn : NSControlStateValueOff;
+    _hudBackgroundColorWell.color = hudBgColor ?: [NSColor colorWithCalibratedRed:0.90 green:0.93 blue:0.98 alpha:0.15];
+    _hudTitlePointSizeTextField.doubleValue = [iTermProfilePreferences doubleForKey:KEY_BADGE_HUD_TITLE_POINT_SIZE inProfile:_profile];
+    _hudBodyPointSizeTextField.doubleValue  = [iTermProfilePreferences doubleForKey:KEY_BADGE_HUD_BODY_POINT_SIZE  inProfile:_profile];
+    _hudTitleAlphaTextField.doubleValue     = [iTermProfilePreferences doubleForKey:KEY_BADGE_HUD_TITLE_ALPHA      inProfile:_profile];
+    _hudBodyAlphaTextField.doubleValue      = [iTermProfilePreferences doubleForKey:KEY_BADGE_HUD_BODY_ALPHA       inProfile:_profile];
 
     _badgeView.delegate = self;
     _ignoreFrameChange = YES;
@@ -476,7 +507,12 @@ typedef struct {
               KEY_BADGE_TOP_MARGIN: @(_topMarginTextField.doubleValue),
               KEY_BADGE_MAX_POINT_SIZE: @(MAX(1, _maxPointSizeTextField.doubleValue)),
               KEY_BADGE_FONT: _fontName ?: @"",
-              KEY_BADGE_HUD_BACKGROUND_COLOR: [_hudBackgroundColorWell.color dictionaryValue] ?: [NSNull null] };
+              KEY_BADGE_FONT_IS_BOLD: @(_boldCheckbox.state == NSControlStateValueOn),
+              KEY_BADGE_HUD_BACKGROUND_COLOR: [_hudBackgroundColorWell.color dictionaryValue] ?: [NSNull null],
+              KEY_BADGE_HUD_TITLE_POINT_SIZE: @(MAX(1, _hudTitlePointSizeTextField.doubleValue)),
+              KEY_BADGE_HUD_BODY_POINT_SIZE:  @(MAX(1, _hudBodyPointSizeTextField.doubleValue)),
+              KEY_BADGE_HUD_TITLE_ALPHA:      @(MAX(0, MIN(1, _hudTitleAlphaTextField.doubleValue))),
+              KEY_BADGE_HUD_BODY_ALPHA:       @(MAX(0, MIN(1, _hudBodyAlphaTextField.doubleValue))) };
 }
 
 - (void)setBadgeFrameFromTextFields {
@@ -513,7 +549,11 @@ typedef struct {
     _ignoreFrameChange = YES;
     [self setBadgeFrameFromTextFields];
     _ignoreFrameChange = NO;
-    if (obj.object == _maxPointSizeTextField) {
+    if (obj.object == _maxPointSizeTextField ||
+        obj.object == _hudTitlePointSizeTextField ||
+        obj.object == _hudBodyPointSizeTextField ||
+        obj.object == _hudTitleAlphaTextField ||
+        obj.object == _hudBodyAlphaTextField) {
         [_badgeView reload];
     }
 }
@@ -540,6 +580,8 @@ typedef struct {
     return [self font];
 }
 
+- (BOOL)badgeViewFontIsBold { return _boldCheckbox.state == NSControlStateValueOn; }
+
 - (CGFloat)badgeViewMaxPointSize {
     const CGFloat value = _maxPointSizeTextField.doubleValue;
     if (value > 0) {
@@ -548,13 +590,14 @@ typedef struct {
     return [iTermAdvancedSettingsModel badgeMaxPointSize];
 }
 
-- (NSColor *)badgeViewHudBackgroundColor {
-    return _hudBackgroundColorWell.color;
-}
+- (NSColor *)badgeViewHudBackgroundColor { return _hudBackgroundColorWell.color; }
+- (CGFloat)badgeViewHudTitlePointSize    { return MAX(1, _hudTitlePointSizeTextField.doubleValue); }
+- (CGFloat)badgeViewHudBodyPointSize     { return MAX(1, _hudBodyPointSizeTextField.doubleValue); }
+- (CGFloat)badgeViewHudTitleAlpha        { return MAX(0, MIN(1, _hudTitleAlphaTextField.doubleValue)); }
+- (CGFloat)badgeViewHudBodyAlpha         { return MAX(0, MIN(1, _hudBodyAlphaTextField.doubleValue)); }
 
-- (IBAction)hudBackgroundColorDidChange:(id)sender {
-    [_badgeView reload];
-}
+- (IBAction)hudBackgroundColorDidChange:(id)sender { [_badgeView reload]; }
+- (IBAction)boldCheckboxDidChange:(id)sender       { [_badgeView reload]; }
 
 #pragma mark - BFPCompositeViewDelegate
 

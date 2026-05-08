@@ -257,6 +257,7 @@ typedef struct {
         }];
 
         NSArray *booleans = @[
+            KEY_BADGE_FONT_IS_BOLD,
             KEY_USE_CURSOR_GUIDE COLORS_LIGHT_MODE_SUFFIX,
             KEY_USE_CURSOR_GUIDE COLORS_DARK_MODE_SUFFIX,
             KEY_USE_CURSOR_GUIDE,
@@ -409,6 +410,9 @@ typedef struct {
 
             KEY_BROWSER_ZOOM,
             KEY_WIDTH, KEY_HEIGHT,
+
+            KEY_BADGE_HUD_TITLE_POINT_SIZE, KEY_BADGE_HUD_BODY_POINT_SIZE,
+            KEY_BADGE_HUD_TITLE_ALPHA, KEY_BADGE_HUD_BODY_ALPHA,
 
             KEY_PROFILE_TYPE_PHONY
         ];
@@ -878,7 +882,14 @@ typedef struct {
                   KEY_ANSI_15_COLOR:       [[NSColor colorWithCalibratedRed:1.000 green:1.000 blue:1.000 alpha:1] dictionaryValue],
                   KEY_CURSOR_GUIDE_COLOR:  [[NSColor colorWithCalibratedRed:0.650 green:0.910 blue:1.000 alpha:0.25] dictionaryValue],
                   KEY_BADGE_COLOR:         [[NSColor colorWithCalibratedRed:1.0 green:0.000 blue:0.000 alpha:0.5] dictionaryValue],
-                  KEY_BADGE_HUD_BACKGROUND_COLOR: [[NSColor colorWithCalibratedRed:0.03 green:0.08 blue:0.19 alpha:0.82] dictionaryValue],
+                  KEY_BADGE_HUD_BACKGROUND_COLOR: [[NSColor colorWithCalibratedRed:0.90 green:0.93 blue:0.98 alpha:0.15] dictionaryValue],
+                  KEY_BADGE_HUD_BACKGROUND_COLOR COLORS_LIGHT_MODE_SUFFIX: [[NSColor colorWithCalibratedRed:0.90 green:0.93 blue:0.98 alpha:0.15] dictionaryValue],
+                  KEY_BADGE_HUD_BACKGROUND_COLOR COLORS_DARK_MODE_SUFFIX:  [[NSColor colorWithCalibratedRed:0.03 green:0.08 blue:0.19 alpha:0.15] dictionaryValue],
+                  KEY_BADGE_FONT_IS_BOLD:          @YES,
+                  KEY_BADGE_HUD_TITLE_POINT_SIZE: @(14.0),
+                  KEY_BADGE_HUD_BODY_POINT_SIZE:  @(10.0),
+                  KEY_BADGE_HUD_TITLE_ALPHA:      @(1.0),
+                  KEY_BADGE_HUD_BODY_ALPHA:        @(0.75),
                   KEY_ACTIVE_PANE_BORDER_COLOR: [[NSColor colorWithCalibratedRed:0.0 green:0.5 blue:1.0 alpha:1.0] dictionaryValue],
 
                   // The light and dark variants are used.

@@ -4464,6 +4464,27 @@ static NSString *iTermStringForEventPhase(NSEventPhase eventPhase) {
     [self recomputeBadgeLabel];
 }
 
+- (void)setBadgeHudTitlePointSize:(CGFloat)pts {
+    if (_badgeLabel.hudTitlePointSize == pts) return;
+    _badgeLabel.hudTitlePointSize = pts;
+    [self recomputeBadgeLabel];
+}
+- (void)setBadgeHudBodyPointSize:(CGFloat)pts {
+    if (_badgeLabel.hudBodyPointSize == pts) return;
+    _badgeLabel.hudBodyPointSize = pts;
+    [self recomputeBadgeLabel];
+}
+- (void)setBadgeHudTitleAlpha:(CGFloat)alpha {
+    if (_badgeLabel.hudTitleAlpha == alpha) return;
+    _badgeLabel.hudTitleAlpha = alpha;
+    [self recomputeBadgeLabel];
+}
+- (void)setBadgeHudBodyAlpha:(CGFloat)alpha {
+    if (_badgeLabel.hudBodyAlpha == alpha) return;
+    _badgeLabel.hudBodyAlpha = alpha;
+    [self recomputeBadgeLabel];
+}
+
 - (void)recomputeBadgeLabel {
     if (!_delegate) {
         return;

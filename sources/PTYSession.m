@@ -5379,6 +5379,10 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     _badgeLabelSizeFraction = NSMakeSize([iTermProfilePreferences floatForKey:KEY_BADGE_MAX_WIDTH inProfile:aDict],
                                          [iTermProfilePreferences floatForKey:KEY_BADGE_MAX_HEIGHT inProfile:aDict]);
     [_textview setBadgeMaxPointSize:[iTermProfilePreferences floatForKey:KEY_BADGE_MAX_POINT_SIZE inProfile:aDict]];
+    [_textview setBadgeHudTitlePointSize:[iTermProfilePreferences floatForKey:KEY_BADGE_HUD_TITLE_POINT_SIZE inProfile:aDict]];
+    [_textview setBadgeHudBodyPointSize:[iTermProfilePreferences floatForKey:KEY_BADGE_HUD_BODY_POINT_SIZE inProfile:aDict]];
+    [_textview setBadgeHudTitleAlpha:[iTermProfilePreferences floatForKey:KEY_BADGE_HUD_TITLE_ALPHA inProfile:aDict]];
+    [_textview setBadgeHudBodyAlpha:[iTermProfilePreferences floatForKey:KEY_BADGE_HUD_BODY_ALPHA inProfile:aDict]];
 
     self.subtitleFormat = [iTermProfilePreferences stringForKey:KEY_SUBTITLE inProfile:aDict];
 
@@ -20660,7 +20664,7 @@ static const NSTimeInterval PTYSessionFocusReportBellSquelchTimeIntervalThreshol
     if (!font) {
         font = [NSFont fontWithName:@"Helvetica" size:pointSize];
     }
-    if ([iTermAdvancedSettingsModel badgeFontIsBold]) {
+    if ([iTermProfilePreferences boolForKey:KEY_BADGE_FONT_IS_BOLD inProfile:_profile]) {
         font = [fontManager convertFont:font
                             toHaveTrait:NSBoldFontMask];
     }

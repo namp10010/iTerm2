@@ -771,6 +771,12 @@ extendResultsAcrossSoftBoundaries:(BOOL)extendResultsAcrossSoftBoundaries;
 // Caps the auto-sized badge font at the given point size.
 - (void)setBadgeMaxPointSize:(CGFloat)pointSize;
 
+// HUD-mode badge typography.
+- (void)setBadgeHudTitlePointSize:(CGFloat)pts;
+- (void)setBadgeHudBodyPointSize:(CGFloat)pts;
+- (void)setBadgeHudTitleAlpha:(CGFloat)alpha;
+- (void)setBadgeHudBodyAlpha:(CGFloat)alpha;
+
 // Menu for session title bar hamburger button
 - (NSMenu *)titleBarMenu;
 

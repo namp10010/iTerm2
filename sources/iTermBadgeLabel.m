@@ -15,13 +15,11 @@
 @property(nonatomic, retain) NSImage *image;
 @end
 
-static const CGFloat kHudHPad          = 10.0;
-static const CGFloat kHudVPad          = 6.0;
-static const CGFloat kHudStepW         = 16.0;
-static const CGFloat kHudOuterWidth    = 1.5;
-static const CGFloat kHudInnerWidth    = 1.0;
-static const CGFloat kHudInnerInset    = 3.5;
-static const CGFloat kHudGlowRadius   = 7.0;
+static const CGFloat kHudHPad        = 10.0;
+static const CGFloat kHudVPad        = 6.0;
+static const CGFloat kHudCornerRadius = 6.0;
+static const CGFloat kHudOuterWidth  = 1.0;
+static const CGFloat kHudGlowRadius  = 5.0;
 
 @implementation iTermBadgeLabel {
     NSMutableDictionary<NSString *, NSImage *> *_images;
@@ -70,6 +68,11 @@ static const CGFloat kHudGlowRadius   = 7.0;
     [self setDirty:YES];
 }
 
+- (void)setHudTitlePointSize:(CGFloat)v { if (_hudTitlePointSize == v) return; _hudTitlePointSize = v; [self setDirty:YES]; }
+- (void)setHudBodyPointSize:(CGFloat)v  { if (_hudBodyPointSize  == v) return; _hudBodyPointSize  = v; [self setDirty:YES]; }
+- (void)setHudTitleAlpha:(CGFloat)v     { if (_hudTitleAlpha     == v) return; _hudTitleAlpha     = v; [self setDirty:YES]; }
+- (void)setHudBodyAlpha:(CGFloat)v      { if (_hudBodyAlpha      == v) return; _hudBodyAlpha      = v; [self setDirty:YES]; }
+
 - (void)setStringValue:(NSString *)stringValue {
     if ([stringValue isEqual:_stringValue] || stringValue == _stringValue) {
         return;
@@ -95,75 +98,47 @@ static const CGFloat kHudGlowRadius   = 7.0;
 
 #pragma mark - HUD rendering
 
-// 8-vertex right-angle polygon with notches cut from the top-left and bottom-right corners.
-// In NSImage coords (y=0 at bottom) the Metal shader flips the image vertically, so
-// "bottom" in image space appears at the top on screen — which is where the title strip sits.
-- (NSBezierPath *)hudPathForW:(CGFloat)W H:(CGFloat)H stepW:(CGFloat)sw stepH:(CGFloat)sh {
-    NSBezierPath *p = [NSBezierPath bezierPath];
-    [p moveToPoint:NSMakePoint(sw, 0)];
-    [p lineToPoint:NSMakePoint(W, 0)];
-    [p lineToPoint:NSMakePoint(W, H - sh)];
-    [p lineToPoint:NSMakePoint(W - sw, H - sh)];
-    [p lineToPoint:NSMakePoint(W - sw, H)];
-    [p lineToPoint:NSMakePoint(0, H)];
-    [p lineToPoint:NSMakePoint(0, sh)];
-    [p lineToPoint:NSMakePoint(sw, sh)];
-    [p closePath];
-    return p;
-}
-
-// Same path but inset uniformly by |s| on all edges.
-- (NSBezierPath *)hudPathInsetBy:(CGFloat)s W:(CGFloat)W H:(CGFloat)H stepW:(CGFloat)sw stepH:(CGFloat)sh {
-    NSBezierPath *p = [NSBezierPath bezierPath];
-    [p moveToPoint:NSMakePoint(sw + s, s)];
-    [p lineToPoint:NSMakePoint(W - s, s)];
-    [p lineToPoint:NSMakePoint(W - s, H - sh - s)];
-    [p lineToPoint:NSMakePoint(W - sw - s, H - sh - s)];
-    [p lineToPoint:NSMakePoint(W - sw - s, H - s)];
-    [p lineToPoint:NSMakePoint(s, H - s)];
-    [p lineToPoint:NSMakePoint(s, sh + s)];
-    [p lineToPoint:NSMakePoint(sw + s, sh + s)];
-    [p closePath];
-    return p;
-}
-
-- (NSImage *)hudImageWithBodyPointSize:(CGFloat)bodyPts {
+- (NSImage *)hudImage {
     NSRange nl = [_stringValue rangeOfString:@"\n"];
     NSString *titleLine = [_stringValue substringToIndex:nl.location];
-    NSString *bodyText = [_stringValue substringFromIndex:nl.location + 1];
+    NSString *bodyText  = [_stringValue substringFromIndex:nl.location + 1];
 
-    CGFloat titlePts = MAX(self.minimumPointSize, bodyPts - 2);
+    CGFloat titlePts = MAX(self.minimumPointSize, _hudTitlePointSize);
+    CGFloat bodyPts  = MAX(self.minimumPointSize, _hudBodyPointSize);
     NSFont *titleFont = [self.delegate badgeLabelFontOfSize:titlePts];
     NSFont *bodyFont  = [self.delegate badgeLabelFontOfSize:bodyPts];
 
     NSDictionary *titleAttrs = @{
         NSFontAttributeName: titleFont,
-        NSForegroundColorAttributeName: [_fillColor colorWithAlphaComponent:1.0],
+        NSForegroundColorAttributeName: [_fillColor colorWithAlphaComponent:_hudTitleAlpha],
         NSParagraphStyleAttributeName: _hudParagraphStyle,
     };
     NSDictionary *bodyAttrs = @{
         NSFontAttributeName: bodyFont,
-        NSForegroundColorAttributeName: _fillColor,
+        NSForegroundColorAttributeName: [_fillColor colorWithAlphaComponent:_hudBodyAlpha],
         NSParagraphStyleAttributeName: _hudParagraphStyle,
-        NSStrokeWidthAttributeName: @-2,
-        NSStrokeColorAttributeName: [_backgroundColor colorWithAlphaComponent:1],
     };
 
     NSSize maxSize = self.maxSize;
-    CGFloat maxBodyW = maxSize.width - 2 * kHudHPad;
+    CGFloat maxW = maxSize.width - 2 * kHudHPad;
     BOOL truncated;
-    NSSize titleSize = [titleLine it_boundingRectWithSize:NSMakeSize(maxBodyW, CGFLOAT_MAX)
+
+    // Step 1: measure title to determine panel width.
+    NSSize titleSize = [titleLine it_boundingRectWithSize:NSMakeSize(maxW, CGFLOAT_MAX)
                                               attributes:titleAttrs
                                                truncated:&truncated].size;
-    NSSize bodySize  = [bodyText it_boundingRectWithSize:NSMakeSize(maxBodyW, CGFLOAT_MAX)
-                                             attributes:bodyAttrs
-                                              truncated:&truncated].size;
 
-    CGFloat stepH = titleSize.height + 2 * kHudVPad;
-    CGFloat W = MIN(maxSize.width,
-                    MAX(bodySize.width, titleSize.width + kHudStepW) + 2 * kHudHPad);
-    CGFloat H = MIN(maxSize.height,
-                    stepH + bodySize.height + 3 * kHudVPad);
+    // Panel uses the full allowed width so body text has room and wraps cleanly.
+    const CGFloat underlineH = 1.0;
+    CGFloat W = maxSize.width;
+    CGFloat drawW = W - 2 * kHudHPad;
+
+    // Step 2: measure body at the actual drawing width so wrapping is reflected in H.
+    NSSize bodySize = [bodyText it_boundingRectWithSize:NSMakeSize(drawW, CGFLOAT_MAX)
+                                            attributes:bodyAttrs
+                                             truncated:&truncated].size;
+
+    CGFloat H = 4 * kHudVPad + titleSize.height + underlineH + bodySize.height;
 
     if (W <= 0 || H <= 0) {
         return nil;
@@ -172,45 +147,58 @@ static const CGFloat kHudGlowRadius   = 7.0;
     NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(W, H)];
     [image lockFocus];
 
-    NSBezierPath *outer = [self hudPathForW:W H:H stepW:kHudStepW stepH:stepH];
-    NSBezierPath *inner = [self hudPathInsetBy:kHudInnerInset W:W H:H stepW:kHudStepW stepH:stepH];
+    // All drawing in native NSImage Y-up coordinates (y=0 at bottom, high y = top of badge).
+    // drawWithRect:options: places the first text line at the TOP (high-y) of the rect.
+    //
+    // Layout from bottom to top of image:
+    //   kHudVPad | body | kHudVPad | underline | kHudVPad | title | kHudVPad
+    //
+    // Rect positions (y = bottom of rect, top = y + height):
+    //   body:   y=kHudVPad,                                    h=bodySize.height
+    //   uline:  y=kHudVPad+bodySize.height+kHudVPad
+    //   title:  y=kHudVPad+bodySize.height+kHudVPad+uH+kHudVPad, h=titleSize.height
 
-    // Background fill
+    NSRect bounds = NSMakeRect(0, 0, W, H);
+    NSBezierPath *frame = [NSBezierPath bezierPathWithRoundedRect:bounds
+                                                          xRadius:kHudCornerRadius
+                                                          yRadius:kHudCornerRadius];
     NSColor *bg = _hudBackgroundColor
-        ?: [NSColor colorWithCalibratedRed:0.03 green:0.08 blue:0.19 alpha:0.82];
+        ?: [NSColor colorWithCalibratedRed:0.90 green:0.93 blue:0.98 alpha:0.15];
     [bg setFill];
-    [outer fill];
+    [frame fill];
 
-    // Outer border with glow
     [NSGraphicsContext saveGraphicsState];
     NSShadow *glow = [[NSShadow alloc] init];
-    glow.shadowColor = [_fillColor colorWithAlphaComponent:0.75];
+    glow.shadowColor = [_fillColor colorWithAlphaComponent:0.6];
     glow.shadowBlurRadius = kHudGlowRadius;
     glow.shadowOffset = NSZeroSize;
     [glow set];
-    [[_fillColor colorWithAlphaComponent:0.9] setStroke];
-    [outer setLineWidth:kHudOuterWidth];
-    [outer stroke];
+    [[_fillColor colorWithAlphaComponent:0.85] setStroke];
+    [frame setLineWidth:kHudOuterWidth];
+    [frame stroke];
     [NSGraphicsContext restoreGraphicsState];
-    // Inner border (no glow, dimmer)
-    [[_fillColor colorWithAlphaComponent:0.45] setStroke];
-    [inner setLineWidth:kHudInnerWidth];
-    [inner stroke];
 
-    // Title — in image coords, y=0..stepH is at the bottom of the image
-    // but the Metal shader flips the texture, so it appears at the TOP on screen.
-    NSRect titleRect = NSMakeRect(kHudStepW + kHudHPad,
-                                  kHudVPad,
-                                  W - kHudStepW - 2 * kHudHPad,
-                                  stepH - 2 * kHudVPad);
-    [titleLine it_drawInRect:titleRect attributes:titleAttrs];
+    // Underline
+    CGFloat underlineY = kHudVPad + bodySize.height + kHudVPad;
+    NSBezierPath *ul = [NSBezierPath bezierPath];
+    [ul moveToPoint:NSMakePoint(kHudHPad, underlineY)];
+    [ul lineToPoint:NSMakePoint(W - kHudHPad, underlineY)];
+    [[_fillColor colorWithAlphaComponent:0.5] setStroke];
+    [ul setLineWidth:underlineH];
+    [ul stroke];
 
-    // Body — above the title strip in image coords → appears below title on screen.
-    NSRect bodyRect = NSMakeRect(kHudHPad,
-                                 stepH + kHudVPad,
-                                 W - 2 * kHudHPad,
-                                 H - stepH - 2 * kHudVPad);
-    [bodyText it_drawInRect:bodyRect attributes:bodyAttrs];
+    // Title — rect top (high y) = H - kHudVPad, first line drawn there → top of badge.
+    CGFloat titleY = kHudVPad + bodySize.height + kHudVPad + underlineH + kHudVPad;
+    NSRect titleRect = NSMakeRect(kHudHPad, titleY, W - 2 * kHudHPad, titleSize.height);
+    NSAttributedString *titleStr = [[NSAttributedString alloc] initWithString:titleLine
+                                                                   attributes:titleAttrs];
+    [titleStr drawWithRect:titleRect options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+
+    // Body — rect top (high y) = kHudVPad + bodySize.height, drawn just below underline.
+    NSRect bodyRect = NSMakeRect(kHudHPad, kHudVPad, W - 2 * kHudHPad, bodySize.height);
+    NSAttributedString *bodyStr = [[NSAttributedString alloc] initWithString:bodyText
+                                                                  attributes:bodyAttrs];
+    [bodyStr drawWithRect:bodyRect options:NSStringDrawingUsesLineFragmentOrigin context:nil];
 
     [image unlockFocus];
     return image;
@@ -239,7 +227,7 @@ static const CGFloat kHudGlowRadius   = 7.0;
         return nil;
     }
     if ([_stringValue containsString:@"\n"]) {
-        return [self hudImageWithBodyPointSize:self.idealPointSize];
+        return [self hudImage];
     }
     return [self imageWithPointSize:self.idealPointSize];
 }

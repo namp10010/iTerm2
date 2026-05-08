@@ -77,6 +77,11 @@
 #define KEY_BADGE_FONT                  @"Badge Font"
 #define KEY_BADGE_MAX_POINT_SIZE        @"Badge Max Point Size"
 #define KEY_BADGE_HUD_BACKGROUND_COLOR  @"Badge HUD Background Color"
+#define KEY_BADGE_FONT_IS_BOLD          @"Badge Font Is Bold"
+#define KEY_BADGE_HUD_TITLE_POINT_SIZE  @"Badge HUD Title Point Size"
+#define KEY_BADGE_HUD_BODY_POINT_SIZE   @"Badge HUD Body Point Size"
+#define KEY_BADGE_HUD_TITLE_ALPHA       @"Badge HUD Title Alpha"
+#define KEY_BADGE_HUD_BODY_ALPHA        @"Badge HUD Body Alpha"
 #define KEY_PREVENT_APS                 @"Prevent Automatic Profile Switching"  // Not in regular prefs, only for divorced prefs.
 #define KEY_SUBTITLE                    @"Subtitle"
 #define KEY_SSH_CONFIG                  @"SSH"

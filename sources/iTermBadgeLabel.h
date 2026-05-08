@@ -27,6 +27,12 @@
 // renders as a sci-fi HUD frame (requires badge text to contain a newline).
 @property(nonatomic, retain) NSColor *hudBackgroundColor;
 
+// HUD typography and opacity. Applied when badge text contains a newline.
+@property(nonatomic) CGFloat hudTitlePointSize;  // title font size (pt)
+@property(nonatomic) CGFloat hudBodyPointSize;   // body font size (pt)
+@property(nonatomic) CGFloat hudTitleAlpha;      // title text opacity (0–1)
+@property(nonatomic) CGFloat hudBodyAlpha;       // body text opacity (0–1)
+
 // Badge text
 @property(nonatomic, copy) NSString *stringValue;
 
