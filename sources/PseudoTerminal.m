@@ -77,6 +77,7 @@
 #import "iTermAnnouncementView.h"
 #import "iTermApplication.h"
 #import "iTermApplicationDelegate.h"
+#import "iTermBadgeEditorWindowController.h"
 #import "iTermBroadcastInputHelper.h"
 #import "iTermBroadcastPasswordHelper.h"
 #import "iTermBuiltInFunctions.h"
@@ -244,6 +245,7 @@ typedef NS_ENUM(int, iTermShouldHaveTitleSeparator) {
 };
 
 @interface PseudoTerminal () <
+    iTermBadgeEditorDelegate,
     iTermBroadcastInputHelperDelegate,
     iTermGraphCodable,
     iTermObject,
@@ -443,6 +445,7 @@ typedef NS_ENUM(int, iTermShouldHaveTitleSeparator) {
     BOOL _excursionPrevented;
 
     NSMutableArray<iTermTabGroup *> *_tabGroups;
+    iTermBadgeEditorWindowController *_badgeEditorWindowController;
 }
 
 @synthesize scope = _scope;
@@ -2303,6 +2306,23 @@ ITERM_WEAKLY_REFERENCEABLE
     // Just in case IR is open, close it first.
     [self closeInstantReplay:self orTerminateSession:NO];
     [self closeSession:aSession];
+}
+
+- (IBAction)editBadge:(id)sender {
+    PTYSession *session = self.currentSession;
+    NSString *current = [iTermProfilePreferences stringForKey:KEY_BADGE_FORMAT
+                                                    inProfile:session.profile] ?: @"";
+    _badgeEditorWindowController =
+        [[iTermBadgeEditorWindowController alloc] initWithCurrentFormat:current];
+    _badgeEditorWindowController.delegate = self;
+    NSRect windowRect = [self.window convertRectToScreen:self.window.contentView.bounds];
+    [_badgeEditorWindowController showCenteredInWindowRect:windowRect];
+}
+
+- (void)badgeEditor:(iTermBadgeEditorWindowController *)editor
+    didCommitFormat:(NSString *)format {
+    [self.currentSession setSessionSpecificProfileValues:@{ KEY_BADGE_FORMAT: format }];
+    _badgeEditorWindowController = nil;
 }
 
 - (IBAction)restartSession:(id)sender {
@@ -11926,6 +11946,8 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
         } else {
             result = NO;
         }
+    } else if ([item action] == @selector(editBadge:)) {
+        return [self currentSession] != nil;
     } else if ([item action] == @selector(restartSession:)) {
         return [[self currentSession] isRestartable];
     } else if ([item action] == @selector(duplicateSession:)) {

@@ -1007,6 +1007,12 @@ Gw
                                     <action selector="compose:" target="-1" id="dCP-co-yhy"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Show Badge Editor" keyEquivalent="b" identifier="Show Badge Editor" id="iTerm2-view-badge-editor-item">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                                <connections>
+                                    <action selector="editBadge:" target="-1" id="iTerm2-view-badge-editor-action"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="ikb-Lb-87K">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
@@ -1102,6 +1108,12 @@ CQ
                             <menuItem title="Edit Session…" keyEquivalent="i" identifier="Edit Session…" id="954">
                                 <connections>
                                     <action selector="editCurrentSession:" target="201" id="955"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Edit Badge…" keyEquivalent="b" identifier="Edit Badge…" id="iTerm2-edit-badge-item">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                                <connections>
+                                    <action selector="editBadge:" target="-1" id="iTerm2-edit-badge-action"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="w7i-MX-J2b">

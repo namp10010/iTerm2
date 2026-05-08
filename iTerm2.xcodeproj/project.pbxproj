@@ -3948,6 +3948,8 @@
 		A6D4C27521E1A75B009CF11B /* iTermRegisteredFunctionsTableViewDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A6D4C27321E1A75B009CF11B /* iTermRegisteredFunctionsTableViewDelegate.m */; };
 		A6D4E1872F25A408008DF9BC /* iTermSessionDirectoryTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D4E1862F25A408008DF9BC /* iTermSessionDirectoryTracker.swift */; };
 		A6D5724127BCDAA1002E6E9F /* CharacterAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D5724027BCDAA1002E6E9F /* CharacterAttributes.swift */; };
+		A6BAD6ED01000000000000A2 /* iTermBadgeEditorWindowController.h in Headers */ = {isa = PBXBuildFile; fileRef = A6BAD6ED01000000000000A0 /* iTermBadgeEditorWindowController.h */; };
+		A6BAD6ED01000000000000A3 /* iTermBadgeEditorWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = A6BAD6ED01000000000000A1 /* iTermBadgeEditorWindowController.m */; };
 		A6D5985121B78B9700B59C94 /* iTermBroadcastInputHelper.h in Headers */ = {isa = PBXBuildFile; fileRef = A6D5984F21B78B9700B59C94 /* iTermBroadcastInputHelper.h */; };
 		A6D5985221B78B9700B59C94 /* iTermBroadcastInputHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = A6D5985021B78B9700B59C94 /* iTermBroadcastInputHelper.m */; };
 		A6D693DE2E405AB8005E9AFE /* trigger-make-hyperlink.js in Resources */ = {isa = PBXBuildFile; fileRef = A6D693DD2E405AB8005E9AFE /* trigger-make-hyperlink.js */; };
@@ -8548,6 +8550,8 @@
 		A6D4E1862F25A408008DF9BC /* iTermSessionDirectoryTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iTermSessionDirectoryTracker.swift; sourceTree = "<group>"; };
 		A6D5724027BCDAA1002E6E9F /* CharacterAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterAttributes.swift; sourceTree = "<group>"; };
 		A6D5724227BCE06C002E6E9F /* iTermTextDataSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermTextDataSource.h; sourceTree = "<group>"; };
+		A6BAD6ED01000000000000A0 /* iTermBadgeEditorWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermBadgeEditorWindowController.h; sourceTree = "<group>"; };
+		A6BAD6ED01000000000000A1 /* iTermBadgeEditorWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTermBadgeEditorWindowController.m; sourceTree = "<group>"; };
 		A6D5984F21B78B9700B59C94 /* iTermBroadcastInputHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermBroadcastInputHelper.h; sourceTree = "<group>"; };
 		A6D5985021B78B9700B59C94 /* iTermBroadcastInputHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTermBroadcastInputHelper.m; sourceTree = "<group>"; };
 		A6D693DD2E405AB8005E9AFE /* trigger-make-hyperlink.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "trigger-make-hyperlink.js"; sourceTree = "<group>"; };
@@ -12752,6 +12756,8 @@
 				A667F3921B4CC8BA00705186 /* iTermBadgeLabel.m */,
 				A686F38B1D3951A800F08ED7 /* iTermBoxDrawingBezierCurveFactory.h */,
 				A686F38C1D3951A800F08ED7 /* iTermBoxDrawingBezierCurveFactory.m */,
+				A6BAD6ED01000000000000A0 /* iTermBadgeEditorWindowController.h */,
+				A6BAD6ED01000000000000A1 /* iTermBadgeEditorWindowController.m */,
 				A6D5984F21B78B9700B59C94 /* iTermBroadcastInputHelper.h */,
 				A6D5985021B78B9700B59C94 /* iTermBroadcastInputHelper.m */,
 				A6180D7621A883860073F219 /* iTermBroadcastPasswordHelper.h */,
@@ -15863,6 +15869,7 @@
 				A65429AB20C4880300CE71B1 /* iTermSessionFactory.h in Headers */,
 				537BFDD52101B2500098C91F /* iTermStatusBarCPUUtilizationComponent.h in Headers */,
 				A699507721E33827009916BC /* iTermRawKeyMapper.h in Headers */,
+				A6BAD6ED01000000000000A2 /* iTermBadgeEditorWindowController.h in Headers */,
 				A6D5985121B78B9700B59C94 /* iTermBroadcastInputHelper.h in Headers */,
 				A6725AD623D63B7A001CA48A /* iTermProfileModelJournal.h in Headers */,
 				A653F6AC24D122440062377E /* iTermRestorableStateDriver.h in Headers */,
@@ -19531,6 +19538,7 @@
 				A664AE782C55A6B800A6807A /* iTermModernKeyMapper.swift in Sources */,
 				5365207A21433F7A003C58FD /* iTermGitPoller.m in Sources */,
 				A615829C2E5E6F8F0094B718 /* MovingHistogram.swift in Sources */,
+				A6BAD6ED01000000000000A3 /* iTermBadgeEditorWindowController.m in Sources */,
 				A6D5985221B78B9700B59C94 /* iTermBroadcastInputHelper.m in Sources */,
 				A6A9839D27E7BD7C003319D1 /* OnePasswordTokenRequester.swift in Sources */,
 				A600E9BC22129D1300846C1C /* ToolCommandHistoryView.m in Sources */,
