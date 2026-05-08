@@ -129,6 +129,7 @@ extern NSString *const iTermAdvancedSettingsDidChange;
 + (BOOL)convertItalicsToReverseVideoForTmuxBugwardsCompatible;
 + (BOOL)convertTabDragToWindowDragForSolitaryTabInCompactOrMinimalTheme;
 + (BOOL)copyBackgroundColor;
++ (BOOL)copyBadgeWhenDuplicatingTab;
 + (BOOL)copyWithStylesByDefault;
 + (CGFloat)cursorAnimationMinDistance;
 + (double)cursorSlideAnimationDuration;

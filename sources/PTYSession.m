@@ -6310,7 +6310,20 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     }
     result[SESSION_ARRANGEMENT_COLUMNS] = @(_screen.width);
     result[SESSION_ARRANGEMENT_ROWS] = @(_screen.height);
-    result[SESSION_ARRANGEMENT_BOOKMARK] = replacementProfile ?: _profile;
+    Profile *bookmarkForArrangement = replacementProfile ?: _profile;
+    if ([options[PTYSessionArrangementOptionsForDuplication] boolValue] &&
+        ![iTermAdvancedSettingsModel copyBadgeWhenDuplicatingTab]) {
+        NSMutableDictionary *modifiedProfile = [[bookmarkForArrangement mutableCopy] autorelease];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_FORMAT];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_FONT];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_COLOR];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_TOP_MARGIN];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_RIGHT_MARGIN];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_WIDTH];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_HEIGHT];
+        bookmarkForArrangement = modifiedProfile;
+    }
+    result[SESSION_ARRANGEMENT_BOOKMARK] = bookmarkForArrangement;
 
     if (_substitutions) {
         result[SESSION_ARRANGEMENT_SUBSTITUTIONS] = _substitutions;
