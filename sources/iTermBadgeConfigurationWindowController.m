@@ -30,6 +30,7 @@ static const CGFloat iTermBadgeConfigurationBadgeViewInset = 3;
 - (Profile *)badgeViewProfile;
 - (NSFont *)badgeViewFont;
 - (CGFloat)badgeViewMaxPointSize;
+- (NSColor *)badgeViewHudBackgroundColor;
 @end
 
 @interface iTermBadgeConfigurationBadgeView : NSBox<iTermBadgeLabelDelegate>
@@ -65,7 +66,7 @@ typedef struct {
         _badge.delegate = self;
         _badge.fillColor = [NSColor blackColor];
         _badge.backgroundColor = [NSColor redColor];
-        _badge.stringValue = @"Lorem ipsum dolor sit amet";
+        _badge.stringValue = @"SESSION\nLorem ipsum";
     }
     return self;
 }
@@ -81,6 +82,7 @@ typedef struct {
         const BOOL dark = [NSApp effectiveAppearance].it_isDark;
         _badge.fillColor = [[iTermProfilePreferences colorForKey:KEY_BADGE_COLOR dark:dark profile:profile] colorWithAlphaComponent:1];
         _badge.backgroundColor = [NSColor clearColor];
+        _badge.hudBackgroundColor = [delegate badgeViewHudBackgroundColor];
         _badge.maximumPointSize = [delegate badgeViewMaxPointSize];
         _loremIpsum.image = [_badge image];
         NSColor *backgroundColor = [iTermProfilePreferences colorForKey:KEY_BACKGROUND_COLOR
@@ -332,6 +334,7 @@ typedef struct {
 - (void)layoutSubviews {
     _badge.dirty = YES;
     _badge.maximumPointSize = [self.delegate badgeViewMaxPointSize];
+    _badge.hudBackgroundColor = [self.delegate badgeViewHudBackgroundColor];
     _badge.viewSize = NSMakeSize(self.superview.bounds.size.width,
                                  self.superview.bounds.size.height);
     _loremIpsum.image = [_badge image];
@@ -341,6 +344,7 @@ typedef struct {
 - (void)reload {
     _badge.dirty = YES;
     _badge.maximumPointSize = [self.delegate badgeViewMaxPointSize];
+    _badge.hudBackgroundColor = [self.delegate badgeViewHudBackgroundColor];
     _loremIpsum.image = [_badge image];
     [self updateImageViewFrame];
 }
@@ -366,6 +370,7 @@ typedef struct {
 @property (nonatomic, strong) IBOutlet NSTextField *rightMarginTextField;
 @property (nonatomic, strong) IBOutlet NSTextField *topMarginTextField;
 @property (nonatomic, strong) IBOutlet NSTextField *maxPointSizeTextField;
+@property (nonatomic, strong) IBOutlet NSColorWell *hudBackgroundColorWell;
 @property (nonatomic, strong) IBOutlet NSBox *fakeSessionView;
 @property (nonatomic, strong) IBOutlet iTermBadgeConfigurationBadgeView *badgeView;
 @end
@@ -432,6 +437,12 @@ typedef struct {
     _topMarginTextField.doubleValue = MAX(0, topMargin);
     _maxPointSizeTextField.doubleValue = MAX(1, maxPointSize);
 
+    const BOOL dark = [NSApp effectiveAppearance].it_isDark;
+    NSColor *hudBgColor = [iTermProfilePreferences colorForKey:KEY_BADGE_HUD_BACKGROUND_COLOR
+                                                          dark:dark
+                                                       profile:_profile];
+    _hudBackgroundColorWell.color = hudBgColor ?: [NSColor colorWithCalibratedRed:0.03 green:0.08 blue:0.19 alpha:0.82];
+
     _badgeView.delegate = self;
     _ignoreFrameChange = YES;
     [self setBadgeFrameFromTextFields];
@@ -464,7 +475,8 @@ typedef struct {
               KEY_BADGE_RIGHT_MARGIN: @(_rightMarginTextField.doubleValue),
               KEY_BADGE_TOP_MARGIN: @(_topMarginTextField.doubleValue),
               KEY_BADGE_MAX_POINT_SIZE: @(MAX(1, _maxPointSizeTextField.doubleValue)),
-              KEY_BADGE_FONT: _fontName ?: @"" };
+              KEY_BADGE_FONT: _fontName ?: @"",
+              KEY_BADGE_HUD_BACKGROUND_COLOR: [_hudBackgroundColorWell.color dictionaryValue] ?: [NSNull null] };
 }
 
 - (void)setBadgeFrameFromTextFields {
@@ -534,6 +546,14 @@ typedef struct {
         return value;
     }
     return [iTermAdvancedSettingsModel badgeMaxPointSize];
+}
+
+- (NSColor *)badgeViewHudBackgroundColor {
+    return _hudBackgroundColorWell.color;
+}
+
+- (IBAction)hudBackgroundColorDidChange:(id)sender {
+    [_badgeView reload];
 }
 
 #pragma mark - BFPCompositeViewDelegate

@@ -16,6 +16,7 @@
                 <outlet property="rightMarginTextField" destination="tmu-Jm-bid" id="waN-yp-vPX"/>
                 <outlet property="topMarginTextField" destination="Dpe-kU-rMp" id="ckp-KB-aQC"/>
                 <outlet property="maxPointSizeTextField" destination="Mps-T1-fld" id="Mps-T1-out"/>
+                <outlet property="hudBackgroundColorWell" destination="HBg-cw-001" id="HBg-cw-out"/>
                 <outlet property="window" destination="F0z-JX-Cv5" id="gIp-Ho-8D9"/>
             </connections>
         </customObject>
@@ -242,6 +243,23 @@ Gw
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="HBg-lbl-001">
+                        <rect key="frame" x="251" y="63" width="110" height="17"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="HUD Background:" id="HBg-lbl-cel">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="HBg-cw-001">
+                        <rect key="frame" x="367" y="60" width="44" height="22"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                        <color key="color" red="0.03" green="0.08" blue="0.19" alpha="0.82" colorSpace="calibratedRGB"/>
+                        <connections>
+                            <action selector="hudBackgroundColorDidChange:" target="-2" id="HBg-cw-act"/>
+                        </connections>
+                    </colorWell>
                 </subviews>
             </view>
             <connections>

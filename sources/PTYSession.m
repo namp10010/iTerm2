@@ -12604,6 +12604,10 @@ typedef NS_ENUM(NSUInteger, PTYSessionTmuxReport) {
     return [iTermProfilePreferences colorForKey:KEY_BADGE_COLOR dark:_screen.colorMap.darkMode profile:_profile];
 }
 
+- (NSColor *)textViewBadgeHudBackgroundColor {
+    return [iTermProfilePreferences colorForKey:KEY_BADGE_HUD_BACKGROUND_COLOR dark:_screen.colorMap.darkMode profile:_profile];
+}
+
 // Returns a dictionary with only string values by converting non-strings.
 - (NSDictionary *)textViewVariables {
     return _variables.stringValuedDictionary;

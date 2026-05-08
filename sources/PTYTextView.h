@@ -195,6 +195,7 @@ extern const CGFloat PTYTextViewMarginClickGraceWidth;
 - (NSColor *)textViewCursorGuideColor;
 - (iTermUnicodeNormalization)textViewUnicodeNormalizationForm;
 - (NSColor *)textViewBadgeColor;
+- (NSColor *)textViewBadgeHudBackgroundColor;
 - (NSDictionary *)textViewVariables;
 - (BOOL)textViewSuppressingAllOutput;
 - (BOOL)textViewIsZoomedIn;

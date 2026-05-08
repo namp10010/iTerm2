@@ -76,6 +76,7 @@
 #define KEY_BADGE_MAX_HEIGHT            @"Badge Max Height"
 #define KEY_BADGE_FONT                  @"Badge Font"
 #define KEY_BADGE_MAX_POINT_SIZE        @"Badge Max Point Size"
+#define KEY_BADGE_HUD_BACKGROUND_COLOR  @"Badge HUD Background Color"
 #define KEY_PREVENT_APS                 @"Prevent Automatic Profile Switching"  // Not in regular prefs, only for divorced prefs.
 #define KEY_SUBTITLE                    @"Subtitle"
 #define KEY_SSH_CONFIG                  @"SSH"

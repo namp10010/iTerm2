@@ -23,6 +23,10 @@
 // Color for badge text outline
 @property(nonatomic, retain) NSColor *backgroundColor;
 
+// Background fill colour for the HUD panel. When non-nil and alpha > 0 the badge
+// renders as a sci-fi HUD frame (requires badge text to contain a newline).
+@property(nonatomic, retain) NSColor *hudBackgroundColor;
+
 // Badge text
 @property(nonatomic, copy) NSString *stringValue;
 

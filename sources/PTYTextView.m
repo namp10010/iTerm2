@@ -4471,6 +4471,7 @@ static NSString *iTermStringForEventPhase(NSEventPhase eventPhase) {
 
     _badgeLabel.fillColor = [_delegate textViewBadgeColor];
     _badgeLabel.backgroundColor = [_colorMap colorForKey:kColorMapBackground];
+    _badgeLabel.hudBackgroundColor = [_delegate textViewBadgeHudBackgroundColor];
     _badgeLabel.viewSize = self.enclosingScrollView.documentVisibleRect.size;
     if (_badgeLabel.isDirty) {
         _badgeLabel.dirty = NO;

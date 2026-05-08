@@ -248,7 +248,7 @@ typedef struct {
                             KEY_ANSI_5_COLOR, KEY_ANSI_6_COLOR, KEY_ANSI_7_COLOR, KEY_ANSI_8_COLOR,
                             KEY_ANSI_9_COLOR, KEY_ANSI_10_COLOR, KEY_ANSI_11_COLOR, KEY_ANSI_12_COLOR,
                             KEY_ANSI_13_COLOR, KEY_ANSI_14_COLOR, KEY_ANSI_15_COLOR,
-                            KEY_CURSOR_GUIDE_COLOR, KEY_BADGE_COLOR, KEY_TAB_COLOR,
+                            KEY_CURSOR_GUIDE_COLOR, KEY_BADGE_COLOR, KEY_BADGE_HUD_BACKGROUND_COLOR, KEY_TAB_COLOR,
                             KEY_UNDERLINE_COLOR, KEY_ACTIVE_PANE_BORDER_COLOR ];
         color = [color flatMapWithBlock:^NSArray *(NSString *key) {
             return @[ key,
@@ -878,6 +878,7 @@ typedef struct {
                   KEY_ANSI_15_COLOR:       [[NSColor colorWithCalibratedRed:1.000 green:1.000 blue:1.000 alpha:1] dictionaryValue],
                   KEY_CURSOR_GUIDE_COLOR:  [[NSColor colorWithCalibratedRed:0.650 green:0.910 blue:1.000 alpha:0.25] dictionaryValue],
                   KEY_BADGE_COLOR:         [[NSColor colorWithCalibratedRed:1.0 green:0.000 blue:0.000 alpha:0.5] dictionaryValue],
+                  KEY_BADGE_HUD_BACKGROUND_COLOR: [[NSColor colorWithCalibratedRed:0.03 green:0.08 blue:0.19 alpha:0.82] dictionaryValue],
                   KEY_ACTIVE_PANE_BORDER_COLOR: [[NSColor colorWithCalibratedRed:0.0 green:0.5 blue:1.0 alpha:1.0] dictionaryValue],
 
                   // The light and dark variants are used.
