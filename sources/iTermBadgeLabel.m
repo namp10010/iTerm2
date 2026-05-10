@@ -100,8 +100,9 @@ static const CGFloat kHudGlowRadius  = 5.0;
 
 - (NSImage *)hudImage {
     NSRange nl = [_stringValue rangeOfString:@"\n"];
-    NSString *titleLine = [_stringValue substringToIndex:nl.location];
-    NSString *bodyText  = [_stringValue substringFromIndex:nl.location + 1];
+    BOOL hasBody = nl.location != NSNotFound;
+    NSString *titleLine = hasBody ? [_stringValue substringToIndex:nl.location] : _stringValue;
+    NSString *bodyText  = hasBody ? [_stringValue substringFromIndex:nl.location + 1] : @"";
 
     CGFloat titlePts = MAX(self.minimumPointSize, _hudTitlePointSize);
     CGFloat bodyPts  = MAX(self.minimumPointSize, _hudBodyPointSize);
@@ -123,22 +124,24 @@ static const CGFloat kHudGlowRadius  = 5.0;
     CGFloat maxW = maxSize.width - 2 * kHudHPad;
     BOOL truncated;
 
-    // Step 1: measure title to determine panel width.
     NSSize titleSize = [titleLine it_boundingRectWithSize:NSMakeSize(maxW, CGFLOAT_MAX)
                                               attributes:titleAttrs
                                                truncated:&truncated].size;
 
-    // Panel uses the full allowed width so body text has room and wraps cleanly.
     const CGFloat underlineH = 1.0;
     CGFloat W = maxSize.width;
     CGFloat drawW = W - 2 * kHudHPad;
 
-    // Step 2: measure body at the actual drawing width so wrapping is reflected in H.
-    NSSize bodySize = [bodyText it_boundingRectWithSize:NSMakeSize(drawW, CGFLOAT_MAX)
-                                            attributes:bodyAttrs
-                                             truncated:&truncated].size;
+    NSSize bodySize = NSZeroSize;
+    if (hasBody) {
+        bodySize = [bodyText it_boundingRectWithSize:NSMakeSize(drawW, CGFLOAT_MAX)
+                                         attributes:bodyAttrs
+                                          truncated:&truncated].size;
+    }
 
-    CGFloat H = 4 * kHudVPad + titleSize.height + underlineH + bodySize.height;
+    CGFloat H = hasBody
+        ? 4 * kHudVPad + titleSize.height + underlineH + bodySize.height
+        : 2 * kHudVPad + titleSize.height;
 
     if (W <= 0 || H <= 0) {
         return nil;
@@ -146,17 +149,6 @@ static const CGFloat kHudGlowRadius  = 5.0;
 
     NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(W, H)];
     [image lockFocus];
-
-    // All drawing in native NSImage Y-up coordinates (y=0 at bottom, high y = top of badge).
-    // drawWithRect:options: places the first text line at the TOP (high-y) of the rect.
-    //
-    // Layout from bottom to top of image:
-    //   kHudVPad | body | kHudVPad | underline | kHudVPad | title | kHudVPad
-    //
-    // Rect positions (y = bottom of rect, top = y + height):
-    //   body:   y=kHudVPad,                                    h=bodySize.height
-    //   uline:  y=kHudVPad+bodySize.height+kHudVPad
-    //   title:  y=kHudVPad+bodySize.height+kHudVPad+uH+kHudVPad, h=titleSize.height
 
     NSRect bounds = NSMakeRect(0, 0, W, H);
     NSBezierPath *frame = [NSBezierPath bezierPathWithRoundedRect:bounds
@@ -178,27 +170,31 @@ static const CGFloat kHudGlowRadius  = 5.0;
     [frame stroke];
     [NSGraphicsContext restoreGraphicsState];
 
-    // Underline
-    CGFloat underlineY = kHudVPad + bodySize.height + kHudVPad;
-    NSBezierPath *ul = [NSBezierPath bezierPath];
-    [ul moveToPoint:NSMakePoint(kHudHPad, underlineY)];
-    [ul lineToPoint:NSMakePoint(W - kHudHPad, underlineY)];
-    [[_fillColor colorWithAlphaComponent:0.5] setStroke];
-    [ul setLineWidth:underlineH];
-    [ul stroke];
+    if (hasBody) {
+        CGFloat underlineY = kHudVPad + bodySize.height + kHudVPad;
+        NSBezierPath *ul = [NSBezierPath bezierPath];
+        [ul moveToPoint:NSMakePoint(kHudHPad, underlineY)];
+        [ul lineToPoint:NSMakePoint(W - kHudHPad, underlineY)];
+        [[_fillColor colorWithAlphaComponent:0.5] setStroke];
+        [ul setLineWidth:underlineH];
+        [ul stroke];
 
-    // Title — rect top (high y) = H - kHudVPad, first line drawn there → top of badge.
-    CGFloat titleY = kHudVPad + bodySize.height + kHudVPad + underlineH + kHudVPad;
-    NSRect titleRect = NSMakeRect(kHudHPad, titleY, W - 2 * kHudHPad, titleSize.height);
-    NSAttributedString *titleStr = [[NSAttributedString alloc] initWithString:titleLine
-                                                                   attributes:titleAttrs];
-    [titleStr drawWithRect:titleRect options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+        NSRect bodyRect = NSMakeRect(kHudHPad, kHudVPad, W - 2 * kHudHPad, bodySize.height);
+        NSAttributedString *bodyStr = [[NSAttributedString alloc] initWithString:bodyText
+                                                                      attributes:bodyAttrs];
+        [bodyStr drawWithRect:bodyRect options:NSStringDrawingUsesLineFragmentOrigin context:nil];
 
-    // Body — rect top (high y) = kHudVPad + bodySize.height, drawn just below underline.
-    NSRect bodyRect = NSMakeRect(kHudHPad, kHudVPad, W - 2 * kHudHPad, bodySize.height);
-    NSAttributedString *bodyStr = [[NSAttributedString alloc] initWithString:bodyText
-                                                                  attributes:bodyAttrs];
-    [bodyStr drawWithRect:bodyRect options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+        CGFloat titleY = kHudVPad + bodySize.height + kHudVPad + underlineH + kHudVPad;
+        NSRect titleRect = NSMakeRect(kHudHPad, titleY, W - 2 * kHudHPad, titleSize.height);
+        NSAttributedString *titleStr = [[NSAttributedString alloc] initWithString:titleLine
+                                                                       attributes:titleAttrs];
+        [titleStr drawWithRect:titleRect options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+    } else {
+        NSRect titleRect = NSMakeRect(kHudHPad, kHudVPad, W - 2 * kHudHPad, titleSize.height);
+        NSAttributedString *titleStr = [[NSAttributedString alloc] initWithString:titleLine
+                                                                       attributes:titleAttrs];
+        [titleStr drawWithRect:titleRect options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+    }
 
     [image unlockFocus];
     return image;
@@ -226,10 +222,7 @@ static const CGFloat kHudGlowRadius  = 5.0;
     if (![_stringValue length]) {
         return nil;
     }
-    if ([_stringValue containsString:@"\n"]) {
-        return [self hudImage];
-    }
-    return [self imageWithPointSize:self.idealPointSize];
+    return [self hudImage];
 }
 
 // Returns an image from the current text with the given |attributes|, or nil if the image would
