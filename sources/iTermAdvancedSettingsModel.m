@@ -326,7 +326,6 @@ DEFINE_BOOL(placeTabsInTitlebarAccessoryInFullScreen, YES, SECTION_TABS @"Place 
 DEFINE_BOOL(defaultIconsUsingLetters, YES, SECTION_TABS @"Use the running command's first letter as the tab's default icon if there isn't a built in one.\nThis takes effect when tabs are configured to use built-in icons.");
 DEFINE_BOOL(tabCloseButtonsAlwaysVisible, NO, SECTION_TABS @"Should tab close buttons always remain visible?");
 DEFINE_BOOL(useSequoiaStyleTabs, NO, SECTION_TABS @"Use Sequoia-style tabs in Tahoe and later?");
-DEFINE_BOOL(copyBadgeWhenDuplicatingTab, YES, SECTION_TABS @"Copy the badge to a duplicated tab?\nWhen disabled, duplicating a tab does not carry the source session’s badge text or styling overrides; the new tab uses the underlying profile’s badge defaults instead.");
 DEFINE_STRING(splitPaneSourceFillColor, @"#008000", SECTION_TABS @"Color of source pane fill when moving/swapping a split pane.\nShould be a web-style color, #rrggbb. You can also use p3#rrggbb for p3 color space.")
 DEFINE_STRING(splitPaneSourceBorderColor, @"#ffffff", SECTION_TABS @"Color of source pane outer border when moving/swapping a split pane.\nShould be a web-style color, #rrggbb. You can also use p3#rrggbb for p3 color space.")
 DEFINE_STRING(splitPaneSourceInnerBorderColor, @"#000000", SECTION_TABS @"Color of source pane inner border when moving/swapping a split pane.\nShould be a web-style color, #rrggbb. You can also use p3#rrggbb for p3 color space.")
@@ -787,6 +786,7 @@ DEFINE_FLOAT(badgeMaxHeightFraction, 0.2, SECTION_BADGE @"Maximum height of the 
 DEFINE_FLOAT(badgeMaxPointSize, 100, SECTION_BADGE @"Default maximum font point size for the badge\nThe badge auto-sizes to fit the available space; this caps how large it can grow. Used when a profile does not have its own setting.");
 DEFINE_INT(badgeRightMargin, 10, SECTION_BADGE @"Default value for right margin for the badge\nHow much space to leave between the right edge of the badge and the right edge of the terminal. Can be overridden by a profile setting. This is the default value if a profile does not have a setting.");
 DEFINE_INT(badgeTopMargin, 10, SECTION_BADGE @"Default value for the top margin for the badge\nHow much space to leave between the top edge of the badge and the top edge of the terminal. Can be overridden by a profile setting. This is the default value if a profile does not have a setting.");
+DEFINE_BOOL(copyBadgeWhenDuplicatingTab, YES, SECTION_BADGE @"Copy the badge to a duplicated tab?\nWhen disabled, duplicating a tab does not carry the source session's badge text or styling overrides; the new tab uses the underlying profile's badge defaults instead.");
 
 #pragma mark - Web Browser
 
