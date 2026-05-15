@@ -13195,6 +13195,7 @@ typedef struct ITMListSessionsResponse_Tab__storage_ {
 @dynamic customProfilePropertiesArray, customProfilePropertiesArray_Count;
 @dynamic hasGroupId, groupId;
 @dynamic hasBadgeText, badgeText;
+@dynamic hasBackground, background;
 
 typedef struct ITMCreateTabRequest__storage_ {
   uint32_t _has_storage_[1];
@@ -13275,6 +13276,15 @@ typedef struct ITMCreateTabRequest__storage_ {
         .offset = (uint32_t)offsetof(ITMCreateTabRequest__storage_, badgeText),
         .flags = GPBFieldOptional,
         .dataType = GPBDataTypeString,
+      },
+      {
+        .name = "background",
+        .dataTypeSpecific.clazz = Nil,
+        .number = ITMCreateTabRequest_FieldNumber_Background,
+        .hasIndex = 6,
+        .offset = 7,  // Stored in _has_storage_ to save space.
+        .flags = GPBFieldOptional,
+        .dataType = GPBDataTypeBool,
       },
     };
     GPBDescriptor *localDescriptor =

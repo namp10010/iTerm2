@@ -171,7 +171,8 @@ async def async_create_tab(
         command=None,
         profile_customizations=None,
         group_id=None,
-        badge=None):
+        badge=None,
+        background=False):
     """
     Creates a new tab or window.
 
@@ -190,6 +191,9 @@ async def async_create_tab(
     badge: Optional badge format string to set on the new session at runtime.
         Overrides the profile's badge text for this session only; the profile
         is not modified.
+    background: If True, do not bring the new tab/window to the foreground.
+        When adding a tab to an existing window the previously selected tab
+        is preserved; when creating a new window the window is not made key.
 
     Returns: iterm2.api_pb2.ServerOriginatedMessage
     """
@@ -212,6 +216,8 @@ async def async_create_tab(
         request.create_tab_request.group_id = group_id
     if badge is not None:
         request.create_tab_request.badge_text = badge
+    if background:
+        request.create_tab_request.background = True
     return await _async_call(connection, request)
 
 

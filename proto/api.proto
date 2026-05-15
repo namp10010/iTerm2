@@ -1595,6 +1595,16 @@ message CreateTabRequest {
   // session's profile is not modified. Any string is accepted; swifty-string
   // interpolation rules apply (e.g. \\(session.name)).
   optional string badge_text = 7;
+
+  // If true, do not bring the new tab/window to the foreground:
+  //   * When adding a tab to an existing window (window_id or group_id is
+  //     set), the window's currently selected tab is preserved; the new tab
+  //     is added but not selected. Window ordering is unchanged from the
+  //     normal behavior.
+  //   * When creating a new window (no window_id and no group_id), the new
+  //     window is created without being made the key window.
+  // Defaults to false.
+  optional bool background = 8;
 }
 
 message CreateTabResponse {

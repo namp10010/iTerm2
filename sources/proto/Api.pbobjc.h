@@ -5303,6 +5303,7 @@ typedef GPB_ENUM(ITMCreateTabRequest_FieldNumber) {
   ITMCreateTabRequest_FieldNumber_CustomProfilePropertiesArray = 5,
   ITMCreateTabRequest_FieldNumber_GroupId = 6,
   ITMCreateTabRequest_FieldNumber_BadgeText = 7,
+  ITMCreateTabRequest_FieldNumber_Background = 8,
 };
 
 GPB_FINAL @interface ITMCreateTabRequest : GPBMessage
@@ -5348,6 +5349,15 @@ GPB_FINAL @interface ITMCreateTabRequest : GPBMessage
 /** Test to see if @c badgeText has been set. */
 @property(nonatomic, readwrite) BOOL hasBadgeText;
 
+/**
+ * If true, do not bring the new tab/window to the foreground. When adding a
+ * tab to an existing window, the window's currently selected tab is preserved
+ * (the new tab is added but not selected). When creating a new window, the
+ * new window is not made key.
+ **/
+@property(nonatomic, readwrite) BOOL background;
+
+@property(nonatomic, readwrite) BOOL hasBackground;
 @end
 
 #pragma mark - ITMCreateTabResponse

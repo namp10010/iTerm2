@@ -77,7 +77,8 @@ class Window:
             profile: typing.Optional[str] = None,
             command: typing.Optional[str] = None,
             profile_customizations:
-            typing.Optional[iterm2.profile.LocalWriteOnlyProfile] = None) -> typing.Optional[
+            typing.Optional[iterm2.profile.LocalWriteOnlyProfile] = None,
+            background: bool = False) -> typing.Optional[
                 'Window']:
         """Creates a new window.
 
@@ -87,6 +88,9 @@ class Window:
             session. Mutually exclusive with profile_customizations.
         :param profile_customizations: LocalWriteOnlyProfile giving changes to
             make in profile. Mutually exclusive with command.
+        :param background: If `True`, the new window is created without being
+            made the key window. It still appears (on the current Space) but
+            does not steal focus from the previously key window.
 
         :returns: A new :class:`Window` or `None` if the session ended right
             away.
@@ -110,7 +114,8 @@ class Window:
             connection,
             profile=profile,
             window=None,
-            profile_customizations=custom_dict)
+            profile_customizations=custom_dict,
+            background=background)
         ctr = result.create_tab_response
         # pylint: disable=no-member
         if ctr.status == iterm2.api_pb2.CreateTabResponse.Status.Value("OK"):
@@ -308,7 +313,8 @@ class Window:
             profile_customizations: typing.Optional[
                 iterm2.profile.LocalWriteOnlyProfile] = None,
             group_id: typing.Optional[str] = None,
-            badge: typing.Optional[str] = None) -> typing.Optional[
+            badge: typing.Optional[str] = None,
+            background: bool = False) -> typing.Optional[
                     iterm2.tab.Tab]:
         """
         Creates a new tab in this window.
@@ -329,6 +335,8 @@ class Window:
         :param badge: Badge format string to set on the new session at
             runtime. If `None`, the session uses the badge from its profile.
             The profile is not modified.
+        :param background: If `True`, the new tab is added without changing
+            the active tab of this window. Window ordering is unaffected.
 
         :returns: :class:`Tab` or `None` if the session closed right away.
 
@@ -351,7 +359,8 @@ class Window:
             index=index,
             profile_customizations=custom_dict,
             group_id=group_id,
-            badge=badge)
+            badge=badge,
+            background=background)
         # pylint: disable=no-member
         if (result.create_tab_response.status ==
                 iterm2.api_pb2.CreateTabResponse.Status.Value("OK")):

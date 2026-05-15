@@ -2398,8 +2398,17 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
         }
     }
 
+    // For background tab creation in an existing window, remember the
+    // currently selected tab so we can restore it after the new tab is
+    // inserted (insertTab: auto-selects the new tab). For new windows
+    // background suppresses makeKey instead (handled via launcher.makeKey).
+    PTYTab *originalSelectedTab = (request.background && term) ? term.currentTab : nil;
+
     iTermSessionLauncher *launcher = [[iTermSessionLauncher alloc] initWithProfile:profile windowController:term];
     launcher.canActivate = NO;
+    if (request.background) {
+        launcher.makeKey = NO;
+    }
     launcher.makeSession = ^(NSDictionary * _Nonnull profile, PseudoTerminal * _Nonnull term, void (^ _Nonnull didMakeSession)(PTYSession * _Nullable)) {
         profile = [self profileByCustomizing:profile withProperties:request.customProfilePropertiesArray];
         [term asyncCreateTabWithProfile:profile
@@ -2411,12 +2420,16 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
     };
     __weak __typeof(self) weakSelf = self;
     [launcher launchWithCompletion:^(PTYSession *session, BOOL ok) {
-        [weakSelf didCreateSession:ok ? session : nil forRequest:request handler:handler];
+        [weakSelf didCreateSession:ok ? session : nil
+                        forRequest:request
+                originalSelectedTab:originalSelectedTab
+                           handler:handler];
     }];
 }
 
 - (void)didCreateSession:(PTYSession *)session
               forRequest:(ITMCreateTabRequest *)request
+     originalSelectedTab:(PTYTab *)originalSelectedTab
                  handler:(void (^)(ITMCreateTabResponse *))handler {
     if (!session) {
         ITMCreateTabResponse *response = [[ITMCreateTabResponse alloc] init];
@@ -2456,6 +2469,18 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
 
     if (request.hasBadgeText) {
         session.badgeFormat = request.badgeText;
+    }
+
+    // Restore the previously selected tab when launching in the background.
+    // Only meaningful when adding a tab to an existing window: if the new
+    // tab is the only tab (new window case) we'd undo the only valid
+    // selection. Guard against the original tab having been closed during
+    // the async launch.
+    if (request.background &&
+        originalSelectedTab &&
+        originalSelectedTab != tab &&
+        [term.tabs containsObject:originalSelectedTab]) {
+        [term.tabView selectTabViewItem:originalSelectedTab.tabViewItem];
     }
 
     ITMCreateTabResponse *response = [[ITMCreateTabResponse alloc] init];

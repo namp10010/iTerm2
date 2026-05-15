@@ -3037,6 +3037,7 @@ class CreateTabRequest(google___protobuf___message___Message):
     command = ... # type: typing___Text
     group_id = ... # type: typing___Text
     badge_text = ... # type: typing___Text
+    background = ... # type: bool
 
     @property
     def custom_profile_properties(self) -> google___protobuf___internal___containers___RepeatedCompositeFieldContainer[ProfileProperty]: ...
@@ -3049,6 +3050,7 @@ class CreateTabRequest(google___protobuf___message___Message):
         custom_profile_properties : typing___Optional[typing___Iterable[ProfileProperty]] = None,
         group_id : typing___Optional[typing___Text] = None,
         badge_text : typing___Optional[typing___Text] = None,
+        background : typing___Optional[bool] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> CreateTabRequest: ...
