@@ -10438,6 +10438,7 @@ typedef NS_ENUM(NSUInteger, PTYSessionTmuxReport) {
         case KEY_ACTION_SWAP_PANE_BELOW:
         case KEY_ACTION_TOGGLE_MOUSE_REPORTING:
         case KEY_ACTION_DUPLICATE_TAB:
+        case KEY_ACTION_ADD_TAB_TO_NEW_GROUP_AND_RENAME:
         case KEY_ACTION_MOVE_TO_SPLIT_PANE:
         case KEY_ACTION_SEND_SNIPPET:
         case KEY_ACTION_COMPOSE:
@@ -10888,6 +10889,9 @@ typedef NS_ENUM(NSUInteger, PTYSessionTmuxReport) {
             break;
         case KEY_ACTION_DUPLICATE_TAB:
             [self.delegate sessionDuplicateTab];
+            break;
+        case KEY_ACTION_ADD_TAB_TO_NEW_GROUP_AND_RENAME:
+            [self.delegate sessionAddTabToNewGroupAndRename];
             break;
         case KEY_ACTION_MOVE_TO_SPLIT_PANE:
             [self textViewMovePane];

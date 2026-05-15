@@ -1631,6 +1631,13 @@ CQ
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Tab" id="cX5-Da-13x">
                                     <items>
+                                        <menuItem title="Add to New Group and Rename" keyEquivalent="g" identifier="Tab.Add to New Group and Rename" id="TG1-Nh-AdR">
+                                            <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                                            <connections>
+                                                <action selector="addCurrentTabToNewGroupAndRename:" target="-1" id="TG2-Nh-AdR"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem isSeparatorItem="YES" id="TG3-Nh-AdR"/>
                                         <menuItem title="Edit Tab Title" identifier="Edit Tab Title" id="o4x-qQ-aC9">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>

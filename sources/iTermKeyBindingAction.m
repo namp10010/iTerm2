@@ -467,6 +467,9 @@ static NSString *GetProfileName(NSString *guid) {
         case KEY_ACTION_DUPLICATE_TAB:
             actionString = @"Duplicate Tab";
             break;
+        case KEY_ACTION_ADD_TAB_TO_NEW_GROUP_AND_RENAME:
+            actionString = @"Add Tab to New Group and Rename";
+            break;
         case KEY_ACTION_SEQUENCE: {
             NSArray<NSString *> *names = [[_parameter keyBindingActionsFromSequenceParameter] mapWithBlock:^id _Nullable(iTermKeyBindingAction * _Nonnull action) {
                 return [action displayName];
@@ -596,6 +599,7 @@ static NSString *GetProfileName(NSString *guid) {
         case KEY_ACTION_TOGGLE_MOUSE_REPORTING:
         case KEY_ACTION_INVOKE_SCRIPT_FUNCTION:
         case KEY_ACTION_DUPLICATE_TAB:
+        case KEY_ACTION_ADD_TAB_TO_NEW_GROUP_AND_RENAME:
         case KEY_ACTION_MOVE_TO_SPLIT_PANE:
         case KEY_ACTION_SWAP_WITH_NEXT_PANE:
         case KEY_ACTION_SWAP_WITH_PREVIOUS_PANE:
@@ -685,6 +689,7 @@ static NSString *GetProfileName(NSString *guid) {
         case KEY_ACTION_TOGGLE_MOUSE_REPORTING:
         case KEY_ACTION_INVOKE_SCRIPT_FUNCTION:
         case KEY_ACTION_DUPLICATE_TAB:
+        case KEY_ACTION_ADD_TAB_TO_NEW_GROUP_AND_RENAME:
         case KEY_ACTION_MOVE_TO_SPLIT_PANE:
         case KEY_ACTION_SWAP_WITH_NEXT_PANE:
         case KEY_ACTION_SWAP_WITH_PREVIOUS_PANE:

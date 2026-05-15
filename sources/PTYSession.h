@@ -286,6 +286,7 @@ typedef enum {
 
 - (iTermVariables *)sessionTabVariables;
 - (void)sessionDuplicateTab;
+- (void)sessionAddTabToNewGroupAndRename;
 
 - (BOOL)sessionShouldAutoClose:(PTYSession *)session;
 - (void)sessionDidChangeGraphic:(PTYSession *)session

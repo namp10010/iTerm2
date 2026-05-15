@@ -11842,6 +11842,9 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
         result = [self hasSavedScrollPosition];
     } else if ([item action] == @selector(editTabTitle:)) {
         return self.numberOfTabs > 0;
+    } else if ([item action] == @selector(addCurrentTabToNewGroupAndRename:)) {
+        PTYTab *tab = [self currentTab];
+        return (tab != nil && !tab.isPinned && tab.tabGroup == nil && ![tab isTmuxTab]);
     } else if ([item action] == @selector(moveTabLeft:)) {
         result = [_contentView.tabView numberOfTabViewItems] > 1;
     } else if ([item action] == @selector(moveTabRight:)) {
@@ -12648,6 +12651,13 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
 
 - (IBAction)renameGroup:(id)sender {
     iTermTabGroup *group = [sender representedObject];
+    [self beginRenamingGroup:group];
+}
+
+- (void)beginRenamingGroup:(iTermTabGroup *)group {
+    if (!group) {
+        return;
+    }
     PSMTabBarCell *headerCell = nil;
     for (PSMTabBarCell *cell in [_contentView.tabBarControl displayCells]) {
         if (cell.isGroupHeader && cell.groupIdentifier == group) {
@@ -12658,6 +12668,22 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
     if (headerCell) {
         [_contentView.tabBarControl beginRenamingGroupHeaderCell:headerCell];
     }
+}
+
+- (void)addTabToNewGroupAndRename:(PTYTab *)tab {
+    iTermTabGroup *group = [self createTabGroupWithTab:tab];
+    if (!group) {
+        return;
+    }
+    [self beginRenamingGroup:group];
+}
+
+- (IBAction)addCurrentTabToNewGroupAndRename:(id)sender {
+    PTYTab *tab = [self currentTab];
+    if (!tab) {
+        return;
+    }
+    [self addTabToNewGroupAndRename:tab];
 }
 
 - (void)tabView:(NSTabView *)tabView didRenameGroup:(id)groupIdentifier to:(NSString *)newName {

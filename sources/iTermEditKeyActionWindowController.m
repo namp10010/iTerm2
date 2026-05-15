@@ -381,6 +381,7 @@ const CGFloat sideMarginWidth = 40;
             [[iTermSearchableComboViewItem alloc] initWithLabel:@"New Window with Profile" tag:KEY_ACTION_NEW_WINDOW_WITH_PROFILE],
             [[iTermSearchableComboViewItem alloc] initWithLabel:@"New Tab with Profile" tag:KEY_ACTION_NEW_TAB_WITH_PROFILE],
         [[iTermSearchableComboViewItem alloc] initWithLabel:@"Duplicate Tab" tag:KEY_ACTION_DUPLICATE_TAB],
+        [[iTermSearchableComboViewItem alloc] initWithLabel:@"Add Tab to New Group and Rename" tag:KEY_ACTION_ADD_TAB_TO_NEW_GROUP_AND_RENAME],
         ]],
 
         [[iTermSearchableComboViewGroup alloc] initWithLabel:@"Split" items:@[

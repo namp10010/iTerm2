@@ -7061,6 +7061,10 @@ typedef struct {
     [parentWindow_ createDuplicateOfTab:self];
 }
 
+- (void)sessionAddTabToNewGroupAndRename {
+    [parentWindow_ addTabToNewGroupAndRename:self];
+}
+
 - (BOOL)sessionShouldAutoClose:(PTYSession *)session {
     return _numberOfSplitViewDragsInProgress == 0;
 }

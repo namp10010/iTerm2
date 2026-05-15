@@ -53,6 +53,9 @@
 // Add a tab with the same panes and profiles.
 - (void)createDuplicateOfTab:(PTYTab *)theTab;
 
+// Wrap the given tab in a fresh tab group and start inline-editing its name.
+- (void)addTabToNewGroupAndRename:(PTYTab *)tab;
+
 // Set background color for tab chrome.
 - (void)updateTabColors;
 
