@@ -130,6 +130,7 @@ extern NSString *const iTermAdvancedSettingsDidChange;
 + (BOOL)convertTabDragToWindowDragForSolitaryTabInCompactOrMinimalTheme;
 + (BOOL)copyBackgroundColor;
 + (BOOL)copyBadgeWhenDuplicatingTab;
++ (BOOL)copyBadgeWhenSplittingPane;
 + (BOOL)copyWithStylesByDefault;
 + (CGFloat)cursorAnimationMinDistance;
 + (double)cursorSlideAnimationDuration;

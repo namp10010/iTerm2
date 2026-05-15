@@ -2533,6 +2533,17 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
             KEY_CUSTOM_COMMAND: kProfilePreferenceCommandTypeSSHValue,
             KEY_COMMAND_LINE: _conductor.sshIdentity.commandLine }];
     }
+    if (![iTermAdvancedSettingsModel copyBadgeWhenSplittingPane]) {
+        NSMutableDictionary *modifiedProfile = [[result mutableCopy] autorelease];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_FORMAT];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_FONT];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_COLOR];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_TOP_MARGIN];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_RIGHT_MARGIN];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_WIDTH];
+        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_HEIGHT];
+        result = modifiedProfile;
+    }
     return result;
 }
 

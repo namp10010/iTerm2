@@ -787,6 +787,7 @@ DEFINE_FLOAT(badgeMaxPointSize, 100, SECTION_BADGE @"Default maximum font point 
 DEFINE_INT(badgeRightMargin, 10, SECTION_BADGE @"Default value for right margin for the badge\nHow much space to leave between the right edge of the badge and the right edge of the terminal. Can be overridden by a profile setting. This is the default value if a profile does not have a setting.");
 DEFINE_INT(badgeTopMargin, 10, SECTION_BADGE @"Default value for the top margin for the badge\nHow much space to leave between the top edge of the badge and the top edge of the terminal. Can be overridden by a profile setting. This is the default value if a profile does not have a setting.");
 DEFINE_BOOL(copyBadgeWhenDuplicatingTab, YES, SECTION_BADGE @"Copy the badge to a duplicated tab?\nWhen disabled, duplicating a tab does not carry the source session's badge text or styling overrides; the new tab uses the underlying profile's badge defaults instead.");
+DEFINE_BOOL(copyBadgeWhenSplittingPane, YES, SECTION_BADGE @"Copy the badge to a split pane?\nWhen disabled, splitting a pane with the same profile (e.g. via ⌘D or ⌘⇧D) does not carry the source session's badge text or styling overrides; the new pane uses the underlying profile's badge defaults instead.");
 
 #pragma mark - Web Browser
 

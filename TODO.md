@@ -23,6 +23,6 @@
 21. [x] Add option to not copy over the badge when duplicating a tab
 22. [x] Add arg to window.async_create_tab() to create a new session in the background
 23. [ ] When a group only has one tab, dropping a new tab onto it is very error prone due to the existing tab doesn't move to create a new placeholder between it and the leader.
-24. [ ] Similar to 21 but when Cmd + D to create a new pane splited horizontally
+24. [x] Similar to 21 but when Cmd + D to create a new pane splited horizontally
 25. [ ] Add another hotkey to add a tab to a new group which add a tab to a new group and automatically change focus to edit the name of the group
 26. [x] The tab dedicated hot key Opt + CMD + number currently work for all tabs (including folded tabs in groups). It should only work on visible (unfolded) tabs
