@@ -27,7 +27,7 @@ class iTermHeadlessWindowController: NSObject, WindowControllerInterface {
     func nextTab(_ sender: Any!) {}
     func previousTab(_ sender: Any!) {}
     func createDuplicate(of tab: PTYTab!) {}
-    func addTab(toNewGroupAndRename tab: PTYTab?) {}
+    func addTab(toNewGroupAndRename tab: PTYTab!) {}
     func updateTabColors() {}
     func enableBlur(_ radius: Double) {}
     func disableBlur() {}
