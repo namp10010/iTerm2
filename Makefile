@@ -285,6 +285,13 @@ python-sdk:
 	else \
 		echo "iTerm2 Python runtime not found (run the app once to download it)"; \
 	fi
+	@brew_py="/opt/homebrew/opt/python@3.14/bin/python3.14"; \
+	if [ -x "$$brew_py" ]; then \
+		"$$brew_py" -m pip install --break-system-packages --no-deps --quiet --force-reinstall $(CURDIR)/api/library/python/iterm2; \
+		echo "Python SDK installed into Homebrew python@3.14"; \
+	else \
+		echo "Homebrew python@3.14 not found (skipping Homebrew install)"; \
+	fi
 
 run: Development python-sdk
 	$(BUILD_DIR)/Development/iTerm2.app/Contents/MacOS/iTerm2 -suite iterm2-dev
@@ -298,6 +305,7 @@ zip: Deployment
 	zip -r iTerm2-$(NAME).zip iTerm2.app
 
 clean:
+	rm -rf ~/Library/Developer/Xcode/DerivedData/iTerm2-*
 	rm -rf "$(BUILD_DIR)"
 	rm -rf submodules/*/build
 	rm -rf submodules/*/build-*
@@ -481,7 +489,7 @@ paranoid-CoreParse: force
 paranoid-SwiftyMarkdown: force
 	/usr/bin/sandbox-exec -f deps.sb $(MAKE) BUILD_DIR="$(BUILD_DIR)" SwiftyMarkdown
 
-paranoid-deps: force
+paranoid-deps: clean force
 	tools/check-submodule-cleanliness
 	/usr/bin/sandbox-exec -f deps.sb $(MAKE) BUILD_DIR="$(BUILD_DIR)" deps
 	xcodebuild -version > last-xcode-version
