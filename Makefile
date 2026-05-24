@@ -321,7 +321,9 @@ clean:
 	git checkout last-xcode-version
 
 backup-old-iterm:
-	if [[ -d $(APPS)/iTerm.app.bak ]] ; then rm -fr $(APPS)/iTerm.app.bak ; fi
+	if [[ -d $(APPS)/iTerm.app.bak.bak.bak ]] ; then rm -fr $(APPS)/iTerm.app.bak.bak.bak ; fi
+	if [[ -d $(APPS)/iTerm.app.bak.bak ]] ; then /bin/mv $(APPS)/iTerm.app.bak.bak $(APPS)/iTerm.app.bak.bak.bak ; fi
+	if [[ -d $(APPS)/iTerm.app.bak ]] ; then /bin/mv $(APPS)/iTerm.app.bak $(APPS)/iTerm.app.bak.bak ; fi
 	if [[ -d $(APPS)/iTerm.app ]] ; then \
 	/bin/mv $(APPS)/iTerm.app $(APPS)/iTerm.app.bak ;\
 	 cp $(ITERM_CONF_PLIST) $(APPS)/iTerm.app.bak/Contents/ ; \
