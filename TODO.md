@@ -27,5 +27,5 @@
 25. [x] Add another hotkey to add a tab to a new group which add a tab to a new group and automatically change focus to edit the name of the group
 26. [x] The tab dedicated hot key Opt + CMD + number currently work for all tabs (including folded tabs in groups). It should only work on visible (unfolded) tabs
 27. [ ] A hotkey to hide/show the badge. when it's hidden it should show a small mark in the top right corner where the badge used to be.
-28. [ ] Bug: when all the group are collapsed (folded) and you closed the last open tab, a tab is shown at the bottom of the tab bar "/var/folders/k3/4z6jyg6s3gv3t3k7f4yg1ls00000gn/T/6C679717-CAEE-47C7-B96F-9768A0CD3336-40343-00000C40A3329B30/pasted-image-20260524-161202.png".
+28. [x] Bug: when all the group are collapsed (folded) and you closed the last open tab, a tab is shown at the bottom of the tab bar "/var/folders/k3/4z6jyg6s3gv3t3k7f4yg1ls00000gn/T/6C679717-CAEE-47C7-B96F-9768A0CD3336-40343-00000C40A3329B30/pasted-image-20260524-161202.png".
 29. [ ] Bug (not sure how to reproduce yet), sometimes you can't click to unfold currently folded tab groups.
