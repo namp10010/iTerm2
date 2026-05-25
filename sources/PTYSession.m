@@ -314,6 +314,7 @@ static NSString *const SESSION_ARRANGEMENT_CURSOR_TYPE_OVERRIDE = @"Cursor Type 
 static NSString *const SESSION_ARRANGEMENT_AUTOLOG_FILENAME = @"AutoLog File Name";  // NSString. New as of 12/4/19
 static NSString *const SESSION_ARRANGEMENT_REUSABLE_COOKIE = @"Reusable Cookie";  // NSString.
 static NSString *const SESSION_ARRANGEMENT_OVERRIDDEN_FIELDS = @"Overridden Fields";  // NSArray<NSString *>
+static NSString *const SESSION_ARRANGEMENT_STRIP_BADGE = @"Strip Badge";  // NSNumber BOOL. Set when duplicating a tab with copyBadgeWhenDuplicatingTab disabled, so the restore path drops badge keys after looking up the shared profile.
 static NSString *const SESSION_ARRANGEMENT_FILTER = @"Filter";  // NSString
 static NSString *const SESSION_ARRANGEMENT_SSH_STATE = @"SSH State";  // NSNumber
 static NSString *const SESSION_ARRANGEMENT_BROWSER_STATE = @"Browser State";  // NSData
@@ -385,6 +386,10 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
 };
 
 @interface PTYSession(AppSwitching)<iTermAppSwitchingPreventionDetectorDelegate>
+@end
+
+@interface PTYSession (BadgeStripping)
++ (Profile *)profileByStrippingBadgeKeysFrom:(Profile *)profile;
 @end
 
 @implementation PTYSession {
@@ -1839,6 +1844,12 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
         }
     }
 
+    if ([arrangement[SESSION_ARRANGEMENT_STRIP_BADGE] boolValue]) {
+        // Duplicate-Tab with copyBadgeWhenDuplicatingTab disabled. Strip after the shared-profile
+        // lookup so the new session falls back to the underlying profile's badge defaults.
+        theBookmark = [PTYSession profileByStrippingBadgeKeysFrom:theBookmark];
+    }
+
     // set our preferences
     [aSession setProfile:theBookmark];
 
@@ -2494,7 +2505,33 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
     [_tailFindController startTailFindIfVisible];
 }
 
+// Returns a copy of `profile` with badge text/styling keys removed. Used when the underlying
+// profile's badge defaults should win over any session-level overrides — i.e. on Duplicate Tab
+// when copyBadgeWhenDuplicatingTab is off, and on Split Pane when copyBadgeWhenSplittingPane is off.
++ (Profile *)profileByStrippingBadgeKeysFrom:(Profile *)profile {
+    NSMutableDictionary *modified = [[profile mutableCopy] autorelease];
+    [modified removeObjectForKey:KEY_BADGE_FORMAT];
+    [modified removeObjectForKey:KEY_BADGE_FONT];
+    [modified removeObjectForKey:KEY_BADGE_COLOR];
+    [modified removeObjectForKey:KEY_BADGE_TOP_MARGIN];
+    [modified removeObjectForKey:KEY_BADGE_RIGHT_MARGIN];
+    [modified removeObjectForKey:KEY_BADGE_MAX_WIDTH];
+    [modified removeObjectForKey:KEY_BADGE_MAX_HEIGHT];
+    return modified;
+}
+
 - (Profile *)profileForSplit {
+    Profile *result = [self rawProfileForSplit];
+    if (![iTermAdvancedSettingsModel copyBadgeWhenSplittingPane]) {
+        result = [PTYSession profileByStrippingBadgeKeysFrom:result];
+    }
+    return result;
+}
+
+// The original profile resolution for split, before the badge strip is applied. Kept separate so
+// the strip runs on every return path — including the divorced early-return, which previously
+// bypassed it.
+- (Profile *)rawProfileForSplit {
     if ([iTermAdvancedSettingsModel useDivorcedProfileToSplit]) {
         if (self.isDivorced) {
             // NOTE: This counts on splitVertically:before:profile:targetSession: rewriting the GUID.
@@ -2532,17 +2569,6 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
             KEY_SSH_CONFIG: @{},
             KEY_CUSTOM_COMMAND: kProfilePreferenceCommandTypeSSHValue,
             KEY_COMMAND_LINE: _conductor.sshIdentity.commandLine }];
-    }
-    if (![iTermAdvancedSettingsModel copyBadgeWhenSplittingPane]) {
-        NSMutableDictionary *modifiedProfile = [[result mutableCopy] autorelease];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_FORMAT];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_FONT];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_COLOR];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_TOP_MARGIN];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_RIGHT_MARGIN];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_WIDTH];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_HEIGHT];
-        result = modifiedProfile;
     }
     return result;
 }
@@ -6328,15 +6354,14 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     Profile *bookmarkForArrangement = replacementProfile ?: _profile;
     if ([options[PTYSessionArrangementOptionsForDuplication] boolValue] &&
         ![iTermAdvancedSettingsModel copyBadgeWhenDuplicatingTab]) {
-        NSMutableDictionary *modifiedProfile = [[bookmarkForArrangement mutableCopy] autorelease];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_FORMAT];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_FONT];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_COLOR];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_TOP_MARGIN];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_RIGHT_MARGIN];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_WIDTH];
-        [modifiedProfile removeObjectForKey:KEY_BADGE_MAX_HEIGHT];
-        bookmarkForArrangement = modifiedProfile;
+        // Strip the badge keys from the encoded bookmark so the divorced-session restore
+        // path (which uses the arrangement bookmark verbatim) drops the override. The
+        // non-divorced path re-fetches the bookmark by GUID from the shared profile model
+        // and ignores the stripped values, so we also tag the arrangement with
+        // SESSION_ARRANGEMENT_STRIP_BADGE; sessionFromArrangement: honours it after the
+        // shared-profile lookup.
+        bookmarkForArrangement = [PTYSession profileByStrippingBadgeKeysFrom:bookmarkForArrangement];
+        result[SESSION_ARRANGEMENT_STRIP_BADGE] = @YES;
     }
     result[SESSION_ARRANGEMENT_BOOKMARK] = bookmarkForArrangement;
 
