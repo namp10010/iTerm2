@@ -373,6 +373,7 @@ const CGFloat sideMarginWidth = 40;
             hideTerminalOnlyItems ? [NSNull null] : [[iTermSearchableComboViewItem alloc] initWithLabel:@"Run Coprocess" tag:KEY_ACTION_RUN_COPROCESS],
             hideTerminalOnlyItems ? [NSNull null] : [[iTermSearchableComboViewItem alloc] initWithLabel:@"Start Instant Replay" tag:KEY_ACTION_IR_BACKWARD],
             [[iTermSearchableComboViewItem alloc] initWithLabel:@"Undo" tag:KEY_ACTION_UNDO],
+            [[iTermSearchableComboViewItem alloc] initWithLabel:@"Undo Close (Restore Closed Session)" tag:KEY_ACTION_UNDO_CLOSE_SESSION],
             [[iTermSearchableComboViewItem alloc] initWithLabel:@"Send tmux Command" tag:KEY_ACTION_SEND_TMUX_COMMAND],
             [[iTermSearchableComboViewItem alloc] initWithLabel:@"Alert on Next Mark" tag:KEY_ACTION_ALERT_ON_NEXT_MARK],
         ] arrayByRemovingNulls]],

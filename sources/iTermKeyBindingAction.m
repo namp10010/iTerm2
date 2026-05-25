@@ -386,6 +386,9 @@ static NSString *GetProfileName(NSString *guid) {
         case KEY_ACTION_UNDO:
             actionString = @"Undo";
             break;
+        case KEY_ACTION_UNDO_CLOSE_SESSION:
+            actionString = @"Undo Close (Restore Closed Session)";
+            break;
         case KEY_ACTION_FIND_REGEX:
             actionString = [NSString stringWithFormat:@"Find Regex “%@”", _parameter];
             break;
@@ -582,6 +585,7 @@ static NSString *GetProfileName(NSString *guid) {
         case KEY_ACTION_LOAD_COLOR_PRESET:
         case KEY_ACTION_TOGGLE_HOTKEY_WINDOW_PINNING:
         case KEY_ACTION_UNDO:
+        case KEY_ACTION_UNDO_CLOSE_SESSION:
         case KEY_ACTION_MOVE_END_OF_SELECTION_LEFT:
         case KEY_ACTION_MOVE_END_OF_SELECTION_RIGHT:
         case KEY_ACTION_MOVE_START_OF_SELECTION_LEFT:
@@ -672,6 +676,7 @@ static NSString *GetProfileName(NSString *guid) {
         case KEY_ACTION_PASTE_SPECIAL_FROM_SELECTION:
         case KEY_ACTION_TOGGLE_HOTKEY_WINDOW_PINNING:
         case KEY_ACTION_UNDO:
+        case KEY_ACTION_UNDO_CLOSE_SESSION:
         case KEY_ACTION_MOVE_END_OF_SELECTION_LEFT:
         case KEY_ACTION_MOVE_END_OF_SELECTION_RIGHT:
         case KEY_ACTION_MOVE_START_OF_SELECTION_LEFT:

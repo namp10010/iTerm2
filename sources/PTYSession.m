@@ -10508,6 +10508,10 @@ typedef NS_ENUM(NSUInteger, PTYSessionTmuxReport) {
             [PTYSession selectMenuItemWithSelector:@selector(undo:)];
             return YES;
 
+        case KEY_ACTION_UNDO_CLOSE_SESSION:
+            [NSApp sendAction:@selector(undoCloseSession:) to:nil from:nil];
+            return YES;
+
         case KEY_ACTION_SEQUENCE: {
             NSArray<iTermKeyBindingAction *> *subactions = [action.parameter keyBindingActionsFromSequenceParameter];
             for (iTermKeyBindingAction *subaction in subactions) {
@@ -10841,6 +10845,10 @@ typedef NS_ENUM(NSUInteger, PTYSessionTmuxReport) {
         }
         case KEY_ACTION_UNDO:
             [PTYSession selectMenuItemWithSelector:@selector(undo:)];
+            break;
+
+        case KEY_ACTION_UNDO_CLOSE_SESSION:
+            [NSApp sendAction:@selector(undoCloseSession:) to:nil from:nil];
             break;
 
         case KEY_ACTION_MOVE_END_OF_SELECTION_LEFT:
