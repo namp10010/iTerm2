@@ -265,6 +265,11 @@ typedef NS_ENUM(int, iTermShouldHaveTitleSeparator) {
 
 @property(nonatomic, assign) BOOL windowInitialized;
 
+// Set during willRemoveTabViewItem: when the closing tab is the last visible
+// (ungrouped or in an expanded group) tab. Cleared in didSelectTabViewItem:
+// after being consumed.
+@property(nonatomic, assign) BOOL closingLastVisibleTab;
+
 // Session ID of session that currently has an auto-command history window open
 @property(nonatomic, copy) NSString *autoCommandHistorySessionGuid;
 @property(nonatomic, assign) NSTimeInterval timeOfLastResize;
@@ -6735,12 +6740,29 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
 
 - (void)tabView:(NSTabView *)tabView didSelectTabViewItem:(NSTabViewItem *)tabViewItem {
     DLog(@"Did select tab view %@", tabViewItem);
+
+    PTYTab *tab = [tabViewItem identifier];
+    // Invariant: the selected tab is always visible. If the new selection
+    // landed inside a collapsed group:
+    //  - If it's because closing the last visible tab left no alternative →
+    //    create a new ungrouped tab instead of expanding a collapsed group.
+    //  - Otherwise (explicit API/AppleScript selection) → expand the group.
+    if (tab.tabGroup.isCollapsed) {
+        if (self.closingLastVisibleTab) {
+            self.closingLastVisibleTab = NO;
+            [self createFallbackUngroupedTab];
+            return;  // the new tab fires its own didSelectTabViewItem:
+        }
+        tab.tabGroup.collapsed = NO;
+        [self updateTabBar];
+    }
+    self.closingLastVisibleTab = NO;
+
     [_contentView.tabBarControl setFlashing:YES];
 
     if (self.autoCommandHistorySessionGuid) {
         [self hideAutoCommandHistory];
     }
-    PTYTab *tab = [tabViewItem identifier];
     for (PTYSession *aSession in [tab sessions]) {
         DLog(@"Clear new-output flag in %@", aSession);
         [aSession setNewOutput:NO];
@@ -6946,26 +6968,30 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     preferredReplacementForTabViewItem:(NSTabViewItem *)tabViewItem {
     PTYTab *closingTab = [tabViewItem identifier];
     iTermTabGroup *group = closingTab.tabGroup;
-    if (!group) {
-        return nil;
+
+    // If the closing tab is in an expanded group with siblings, prefer a
+    // sibling so the active group stays the same. Skip this path for collapsed
+    // groups: closing a tab inside one is an API/scripted action, and the user
+    // would expect the next tab to be the next *visible* one, not another
+    // hidden sibling.
+    if (group && !group.isCollapsed) {
+        NSArray<PTYTab *> *groupTabs = group.tabs;
+        NSUInteger indexInGroup = [groupTabs indexOfObject:closingTab];
+        if (indexInGroup != NSNotFound && groupTabs.count > 1) {
+            PTYTab *replacement = (indexInGroup > 0) ? groupTabs[indexInGroup - 1]
+                                                    : groupTabs[indexInGroup + 1];
+            return replacement.tabViewItem;
+        }
     }
 
-    NSArray<PTYTab *> *groupTabs = group.tabs;
-    NSUInteger indexInGroup = [groupTabs indexOfObject:closingTab];
-    if (indexInGroup == NSNotFound || groupTabs.count <= 1) {
-        // Last member; group will be destroyed. Use default selection.
-        return nil;
-    }
-
-    PTYTab *replacement;
-    if (indexInGroup > 0) {
-        // Select previous sibling (up).
-        replacement = groupTabs[indexInGroup - 1];
-    } else {
-        // First in group; select next sibling (down).
-        replacement = groupTabs[indexInGroup + 1];
-    }
-    return replacement.tabViewItem;
+    // Otherwise (ungrouped closing tab, last member of a group, or member of a
+    // collapsed group), prefer the nearest visible tab. If none exists (all
+    // remaining tabs are in collapsed groups), return nil so NSTabView picks
+    // its default adjacent tab; willRemoveTabViewItem: will have already set
+    // closingLastVisibleTab, and didSelectTabViewItem: will create a new tab.
+    PTYTab *replacement = [self nextVisibleTabAfter:closingTab
+                                      excludingGroup:group];
+    return replacement.tabViewItem;  // nil.tabViewItem is nil, which is fine
 }
 
 - (void)tabView:(NSTabView *)tabView willRemoveTabViewItem:(NSTabViewItem *)tabViewItem {
@@ -6979,6 +7005,12 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
             [_tabGroups removeObject:group];
         }
     }
+    // Flag whether closing this tab leaves no visible (ungrouped or in an
+    // expanded group) tab. didSelectTabViewItem: consumes this flag to decide
+    // whether to create a new tab or simply expand the auto-selected one.
+    const BOOL tabWasVisible = (tab.tabGroup == nil || !tab.tabGroup.isCollapsed);
+    self.closingLastVisibleTab = tabWasVisible &&
+                                 ([self nextVisibleTabAfter:tab excludingGroup:nil] == nil);
     [self saveAffinitiesLater:[tabViewItem identifier]];
 }
 
@@ -8015,6 +8047,38 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
 
 #pragma mark - PSMTabBarControlDelegate (Tab Groups)
 
+// Returns the nearest PTYTab that is visible in the tab bar (either ungrouped
+// or in an expanded group), scanning forward then backward from `excludedTab`.
+// Skips `excludedTab` itself and all members of `excludedGroup`. Returns nil
+// when no visible alternative exists — callers must then create a new tab or
+// otherwise restore the "selected tab is always visible" invariant.
+- (PTYTab *)nextVisibleTabAfter:(PTYTab *)excludedTab
+                 excludingGroup:(iTermTabGroup *)excludedGroup {
+    NSArray<PTYTab *> *tabs = [self tabs];
+    const NSInteger origin = excludedTab ? [tabs indexOfObject:excludedTab] : NSNotFound;
+    const NSInteger start = (origin == NSNotFound) ? 0 : origin;
+    const NSInteger count = tabs.count;
+    for (NSInteger offset = 1; offset <= count; offset++) {
+        for (NSInteger sign = +1; sign >= -1; sign -= 2) {
+            const NSInteger i = start + sign * offset;
+            if (i < 0 || i >= count) {
+                continue;
+            }
+            PTYTab *candidate = tabs[i];
+            if (candidate == excludedTab) {
+                continue;
+            }
+            if (excludedGroup && candidate.tabGroup == excludedGroup) {
+                continue;
+            }
+            if (candidate.tabGroup == nil || !candidate.tabGroup.isCollapsed) {
+                return candidate;
+            }
+        }
+    }
+    return nil;
+}
+
 - (id)tabGroupForTabViewItem:(NSTabViewItem *)item {
     PTYTab *tab = [item identifier];
     return tab.tabGroup;
@@ -8023,6 +8087,20 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
 - (BOOL)isGroupCollapsed:(id)groupIdentifier {
     iTermTabGroup *group = groupIdentifier;
     return group.isCollapsed;
+}
+
+// Opens a new ungrouped tab using the default profile. Called when all groups
+// are collapsed and a tab-count-decreasing action (close, collapse) would
+// otherwise leave the window with no visible tab.
+- (void)createFallbackUngroupedTab {
+    Profile *profile = [[ProfileModel sharedInstance] defaultBookmark];
+    [self createTabWithProfile:profile
+                   withCommand:nil
+                   environment:nil
+                      tabIndex:nil
+             previousDirectory:nil
+                        parent:nil
+                    completion:nil];
 }
 
 - (NSColor *)colorForGroup:(id)groupIdentifier {
@@ -8084,20 +8162,32 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
 
 - (void)tabView:(NSTabView *)tabView toggleCollapseForGroup:(id)groupIdentifier {
     iTermTabGroup *group = groupIdentifier;
-    group.collapsed = !group.collapsed;
-    // If the selected tab is in this group and the group is now collapsed,
-    // select the first visible tab outside the group.
-    if (group.collapsed) {
+    [self setCollapsed:!group.collapsed forGroup:group];
+}
+
+// Sets a group's collapsed state, preserving the "selected tab is always
+// visible" invariant. When collapsing a group that contains the active tab,
+// activation is moved to the best visible alternative first; if none exists,
+// `didSelectTabViewItem:` will later auto-expand whichever group receives the
+// new selection.
+- (void)setCollapsed:(BOOL)collapsed forGroup:(iTermTabGroup *)group {
+    if (collapsed) {
         PTYTab *currentTab = [self currentTab];
         if (currentTab.tabGroup == group) {
-            for (PTYTab *tab in [self tabs]) {
-                if (tab.tabGroup != group) {
-                    [_contentView.tabView selectTabViewItem:tab.tabViewItem];
-                    break;
-                }
+            PTYTab *replacement = [self nextVisibleTabAfter:currentTab
+                                              excludingGroup:group];
+            if (replacement) {
+                [_contentView.tabView selectTabViewItem:replacement.tabViewItem];
+            } else {
+                // No visible tab outside this group. Open a new ungrouped tab
+                // so the window is never left with zero visible tabs.
+                [self createFallbackUngroupedTab];
+                // createFallbackUngroupedTab selects the new tab; proceed to
+                // collapse so the group folds cleanly.
             }
         }
     }
+    group.collapsed = collapsed;
     [self updateTabBar];
 }
 
@@ -12694,8 +12784,7 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
 
 - (IBAction)toggleCollapseGroup:(id)sender {
     iTermTabGroup *group = [sender representedObject];
-    group.collapsed = !group.collapsed;
-    [self updateTabBar];
+    [self setCollapsed:!group.collapsed forGroup:group];
 }
 
 - (IBAction)ungroupTabsAction:(id)sender {
