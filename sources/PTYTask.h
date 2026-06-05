@@ -208,6 +208,13 @@ typedef NS_OPTIONS(NSUInteger, iTermJobManagerAttachResults) {
 
 - (void)writeTask:(NSData*)data;
 
+// Like writeTask: but writes directly to the PTY synchronously rather than queueing the
+// data for the background IO thread. Intended for use during application termination,
+// when the IO thread may not get scheduled before the child process is killed. Only
+// supported for local tasks (no-op for tmux/SSH-integration tasks). Blocks the calling
+// thread briefly; intended for tiny payloads only.
+- (void)writeSynchronously:(NSData *)data;
+
 - (void)stop;
 
 // Called on any thread

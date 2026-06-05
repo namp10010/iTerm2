@@ -60,6 +60,12 @@ extern NSString *const iTermSnippetsTagsDidChange;
 @property(nonatomic, assign) BOOL selectionRespectsSoftBoundaries;
 @property(nonatomic, assign) BOOL startingUp;
 @property(nonatomic, assign) BOOL applicationIsQuitting;
+
+// Set while we are sending graceful-exit sequences to sessions (e.g. Claude Code) and
+// waiting for them to terminate during quit. While set, workspaceWillPowerOff: must not
+// force-kill restorable sessions out from under the graceful exit.
+@property(nonatomic, assign) BOOL gracefulClaudeExitInProgress;
+
 @property(nonatomic, readonly) BOOL willRestoreWindowsAtNextLaunch;
 @property(nonatomic, readonly) BOOL shouldLeaveSessionsRunningOnQuit;
 @property(nonatomic, readonly) BOOL haveTmuxConnection;

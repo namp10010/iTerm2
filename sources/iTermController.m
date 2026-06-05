@@ -1562,6 +1562,13 @@ replaceInitialDirectoryForSessionWithGUID:(NSString *)guid
 - (void)workspaceWillPowerOff:(NSNotification *)notification {
     if ([iTermAdvancedSettingsModel killSessionsOnLogout] && [iTermAdvancedSettingsModel runJobsInServers]) {
         _willPowerOff = YES;
+        if (_gracefulClaudeExitInProgress || [iTermAdvancedSettingsModel gracefullyExitClaudeOnQuit]) {
+            // Don't force-kill sessions here: applicationShouldTerminate: will send the
+            // graceful-exit sequence and only kill restorable sessions once it completes.
+            // This also avoids a race where this notification arrives before
+            // applicationShouldTerminate: has had a chance to set the in-progress flag.
+            return;
+        }
         [self killRestorableSessions];
     }
 }

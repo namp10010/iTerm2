@@ -2674,6 +2674,40 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
     return result;
 }
 
+- (pid_t)foregroundJobPidIfMatchingGracefulExitNames:(NSSet<NSString *> *)lowercaseNames {
+    if (_exited || lowercaseNames.count == 0) {
+        return -1;
+    }
+    const pid_t shellPid = [self.shell pid];
+    if (shellPid <= 0) {
+        return -1;
+    }
+    [[iTermProcessCache sharedInstance] updateSynchronously];
+
+    // Use the same pattern as processInfoForShellAndDescendants / childJobNameTuples,
+    // which is what the close-session confirmation uses and correctly identifies claude
+    // even when it does not pass the kernel isForegroundJob check.
+    iTermProcessInfo *shellInfo = [[iTermProcessCache sharedInstance] processInfoForPid:shellPid];
+    if (!shellInfo) {
+        return -1;
+    }
+    NSInteger levelsToSkip = [shellInfo.name isEqualToString:@"login"] ? 1 : 0;
+    NSArray<iTermProcessInfo *> *descendants = [shellInfo descendantsSkippingLevels:levelsToSkip];
+    for (iTermProcessInfo *info in descendants) {
+        NSString *name = info.name.lowercaseString;
+        NSString *argv0Base = info.argv0.lastPathComponent.lowercaseString;
+        if ((name && [lowercaseNames containsObject:name]) ||
+            (argv0Base && [lowercaseNames containsObject:argv0Base])) {
+            return info.processID;
+        }
+    }
+    return -1;
+}
+
+- (void)sendGracefulExitSequenceData:(NSData *)data {
+    [self.shell writeSynchronously:data];
+}
+
 - (NSArray<iTermTuple<NSString *, NSString *> *> *)childJobNameTuples {
     NSArray<iTermProcessInfo *> *allInfos = [self processInfoForShellAndDescendants];
     return [allInfos mapWithBlock:^id(iTermProcessInfo *info) {

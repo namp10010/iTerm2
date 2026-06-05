@@ -823,6 +823,15 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 
 - (void)writeLatin1EncodedData:(NSData *)data broadcastAllowed:(BOOL)broadcast reporting:(BOOL)reporting;
 
+// If this session's deepest foreground job's name or argv[0] (last path component) is in
+// the given set of lowercased names, returns that job's pid; otherwise returns -1.
+// Updates the process cache synchronously. Intended for graceful-exit-on-quit handling.
+- (pid_t)foregroundJobPidIfMatchingGracefulExitNames:(NSSet<NSString *> *)lowercaseNames;
+
+// Synchronously writes raw bytes to the PTY (see -[PTYTask writeSynchronously:]). Used at
+// termination time to deliver a graceful-exit keystroke sequence before the child is killed.
+- (void)sendGracefulExitSequenceData:(NSData *)data;
+
 - (void)updateViewBackgroundImage;
 - (void)invalidateBlend;
 - (void)setShowAlternateScreen:(BOOL)showAlternateScreen announce:(BOOL)announce;

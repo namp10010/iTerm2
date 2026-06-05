@@ -372,6 +372,53 @@ static void HandleSigChld(int n) {
     [writeLock unlock];
 }
 
+// Blocking-writes the whole buffer to fd. The fd is non-blocking, so we spin on EAGAIN
+// with a short sleep, capped so we can never hang (~250ms worst case).
+- (void)blockingWriteData:(NSData *)data toFd:(int)fd {
+    const char *bytes = data.bytes;
+    const NSUInteger total = data.length;
+    NSUInteger offset = 0;
+    int wouldBlockAttempts = 0;
+    while (offset < total && wouldBlockAttempts < 2500) {
+        const ssize_t n = write(fd, bytes + offset, total - offset);
+        if (n > 0) {
+            offset += (NSUInteger)n;
+            continue;
+        }
+        if (n < 0 && (errno == EAGAIN || errno == EINTR)) {
+            usleep(100);
+            wouldBlockAttempts++;
+            continue;
+        }
+        // Hard error (e.g. EPIPE) — nothing more we can do.
+        break;
+    }
+}
+
+- (void)writeSynchronously:(NSData *)data {
+    if (data.length == 0) {
+        return;
+    }
+    if (_isTmuxTask || self.ioBuffer != nil) {
+        // We can't synchronously flush to a multiplexed or remote endpoint; fall back to
+        // the normal asynchronous path as a best effort.
+        [self writeTask:data];
+        return;
+    }
+    const int fd = self.fd;
+    if (fd < 0) {
+        return;
+    }
+    [writeLock lock];
+    // Flush anything already queued first so byte order is preserved, then our payload.
+    if (writeBuffer.length > 0) {
+        [self blockingWriteData:writeBuffer toFd:fd];
+        [writeBuffer setLength:0];
+    }
+    [self blockingWriteData:data toFd:fd];
+    [writeLock unlock];
+}
+
 - (void)killWithMode:(iTermJobManagerKillingMode)mode {
     [self.jobManager killWithMode:mode];
     if (_tmuxClientProcessID) {
