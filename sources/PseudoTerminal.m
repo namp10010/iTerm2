@@ -12709,8 +12709,12 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
             return presets[i];
         }
     }
-    // All colours used, cycle back to first.
-    return presets.count > 0 ? presets[0] : [NSColor grayColor];
+    // All colours used: cycle through the full palette by group count
+    // (e.g. with N presets, group N+1 reuses index 0, N+2 reuses index 1, ...).
+    if (presets.count == 0) {
+        return [NSColor grayColor];
+    }
+    return presets[_tabGroups.count % presets.count];
 }
 
 - (void)updateTabBar {
