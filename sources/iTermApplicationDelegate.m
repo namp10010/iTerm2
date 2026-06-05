@@ -135,6 +135,7 @@
 
 #include "iTermFileDescriptorClient.h"
 #include <libproc.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -178,6 +179,12 @@ static BOOL hasBecomeActive = NO;
     NSMenuItemValidation>
 
 @property(nonatomic, readwrite) BOOL workspaceSessionActive;
+
+// Graceful-exit-on-quit helpers (defined out of call order).
+- (void)finishTerminationCleanup;
+- (BOOL)beginGracefulExitOfMatchingSessionsIfNeeded;
+- (NSSet<NSString *> *)gracefulExitProcessNameSet;
+- (void)pollGracefulExitPids:(NSArray<NSNumber *> *)pids deadline:(NSDate *)deadline;
 
 @end
 
@@ -1006,6 +1013,22 @@ static NSModalResponse iTermCompareRenderingRunModal(id self, SEL _cmd) {
         }
     }
 
+    if ([self beginGracefulExitOfMatchingSessionsIfNeeded]) {
+        // We sent graceful-exit sequences to matching sessions (e.g. Claude Code) and
+        // will complete termination asynchronously once they exit or the timeout elapses.
+        DLog(@"applicationShouldTerminate returning Later for graceful exit");
+        return NSTerminateLater;
+    }
+
+    [self finishTerminationCleanup];
+
+    DLog(@"applicationShouldTerminate returning Now");
+    return NSTerminateNow;
+}
+
+// The teardown that must happen once we've decided to quit, factored out so it can run
+// either synchronously (NSTerminateNow) or after waiting for graceful exits (NSTerminateLater).
+- (void)finishTerminationCleanup {
     // Ensure [iTermController dealloc] is called before prefs are saved
     [[iTermModifierRemapper sharedInstance] setRemapModifiers:NO];
 
@@ -1031,9 +1054,111 @@ static NSModalResponse iTermCompareRenderingRunModal(id self, SEL _cmd) {
     if (![[iTermRemotePreferences sharedInstance] customFolderChanged]) {
         [[iTermRemotePreferences sharedInstance] applicationWillTerminate];
     }
+}
 
-    DLog(@"applicationShouldTerminate returning Now");
-    return NSTerminateNow;
+// Parses the comma-delimited claudeGracefulExitProcessNames setting into a set of trimmed,
+// lowercased, non-empty names.
+- (NSSet<NSString *> *)gracefulExitProcessNameSet {
+    NSMutableSet<NSString *> *names = [NSMutableSet set];
+    for (NSString *raw in [[iTermAdvancedSettingsModel claudeGracefulExitProcessNames] componentsSeparatedByString:@","]) {
+        NSString *trimmed = [[raw stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] lowercaseString];
+        if (trimmed.length > 0) {
+            [names addObject:trimmed];
+        }
+    }
+    return names;
+}
+
+// If enabled, sends the graceful-exit sequence to every session whose foreground job
+// matches the configured names, and begins waiting for those processes to exit. Returns
+// YES if at least one session was sent the sequence (in which case the caller should
+// return NSTerminateLater and termination will finish asynchronously).
+- (BOOL)beginGracefulExitOfMatchingSessionsIfNeeded {
+    if (![iTermAdvancedSettingsModel gracefullyExitClaudeOnQuit]) {
+        return NO;
+    }
+    if ([iTermAdvancedSettingsModel claudeGracefulExitSystemShutdownOnly] && ![self systemIsShuttingDown]) {
+        return NO;
+    }
+    NSSet<NSString *> *names = [self gracefulExitProcessNameSet];
+    if (names.count == 0) {
+        return NO;
+    }
+    NSData *sequence = [NSString dataForHexCodes:[iTermAdvancedSettingsModel claudeGracefulExitSequenceHex]];
+    if (sequence.length == 0) {
+        return NO;
+    }
+
+    // Split sequence: first byte sent immediately, remainder sent after a brief delay so
+    // Claude Code has time to process the stash key (Ctrl-S) before receiving Ctrl-C.
+    NSData *firstByte = sequence.length > 0 ? [sequence subdataWithRange:NSMakeRange(0, 1)] : nil;
+    NSData *remainder = sequence.length > 1 ? [sequence subdataWithRange:NSMakeRange(1, sequence.length - 1)] : nil;
+    const int delayMS = MAX(0, [iTermAdvancedSettingsModel claudeGracefulExitInitialDelayMS]);
+
+    NSMutableArray<NSNumber *> *pids = [NSMutableArray array];
+    NSMutableArray<PTYSession *> *matchedSessions = [NSMutableArray array];
+    for (PseudoTerminal *term in [[iTermController sharedInstance] terminals]) {
+        for (PTYSession *session in [term allSessions]) {
+            const pid_t pid = [session foregroundJobPidIfMatchingGracefulExitNames:names];
+            if (pid > 0) {
+                DLog(@"Sending graceful-exit sequence to session %@ (pid %d)", session, pid);
+                if (firstByte) {
+                    [session sendGracefulExitSequenceData:firstByte];
+                }
+                [pids addObject:@(pid)];
+                if (remainder) {
+                    [matchedSessions addObject:session];
+                }
+            }
+        }
+    }
+    if (pids.count == 0) {
+        return NO;
+    }
+
+    if (remainder && delayMS > 0) {
+        usleep((useconds_t)delayMS * 1000);
+    }
+    for (PTYSession *session in matchedSessions) {
+        [session sendGracefulExitSequenceData:remainder];
+    }
+
+    [iTermController sharedInstance].gracefulClaudeExitInProgress = YES;
+    const NSTimeInterval timeout = MAX(0.0, [iTermAdvancedSettingsModel claudeGracefulExitTimeoutSeconds]);
+    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:timeout];
+    // Schedule asynchronously so we never reply to the deferred termination from within
+    // applicationShouldTerminate: itself.
+    __weak __typeof(self) weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [weakSelf pollGracefulExitPids:pids deadline:deadline];
+    });
+    return YES;
+}
+
+// Polls (on the main queue) until every pid has exited or the deadline passes, then
+// finishes termination and replies to the deferred NSTerminateLater.
+- (void)pollGracefulExitPids:(NSArray<NSNumber *> *)pids deadline:(NSDate *)deadline {
+    NSMutableArray<NSNumber *> *stillAlive = [NSMutableArray array];
+    for (NSNumber *pidNumber in pids) {
+        // kill(pid, 0) succeeds iff the process still exists.
+        if (kill(pidNumber.intValue, 0) == 0) {
+            [stillAlive addObject:pidNumber];
+        }
+    }
+
+    if (stillAlive.count == 0 || [deadline timeIntervalSinceNow] <= 0) {
+        DLog(@"Graceful exit finished (%@ still alive, deadline %@). Completing termination.",
+             @(stillAlive.count), deadline);
+        [self finishTerminationCleanup];
+        [NSApp replyToApplicationShouldTerminate:YES];
+        return;
+    }
+
+    __weak __typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        [weakSelf pollGracefulExitPids:stillAlive deadline:deadline];
+    });
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {

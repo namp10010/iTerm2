@@ -807,6 +807,20 @@ DEFINE_SETTABLE_STRING(browserPluginPathHint, BrowserPluginPathHint, @"", SECTIO
 
 // Experimental features I'm afraid to turn on right now, but want to in the future:
 DEFINE_BOOL(killSessionsOnLogout, NO, SECTION_EXPERIMENTAL @"Kill sessions on logout.\nA possible fix for issue 4147.");
+
+// When iTerm2 is about to be terminated (Cmd-Q, or a system shutdown/restart/logout),
+// any session whose foreground job matches one of these names is sent a graceful-exit
+// keystroke sequence first, so that long-lived CLIs like Claude Code can save state and
+// print a resumable session id before their process is killed. iTerm2 then briefly waits
+// for those processes to exit (bounded by claudeGracefulExitTimeoutSeconds) before
+// completing termination. This only works for orderly terminations the OS coordinates;
+// a hard crash (kernel panic, power loss) gives no opportunity to act.
+DEFINE_BOOL(gracefullyExitClaudeOnQuit, YES, SECTION_EXPERIMENTAL @"Gracefully exit Claude Code (and similar) before quitting?\nBefore iTerm2 terminates, sessions running a matching foreground job are sent a keystroke sequence so they can exit cleanly and print a resumable session id.");
+DEFINE_STRING(claudeGracefulExitProcessNames, @"claude", SECTION_EXPERIMENTAL @"Foreground job names that should be gracefully exited before quitting.\nComma-delimited, matched case-insensitively against the process name and argv[0].");
+DEFINE_STRING(claudeGracefulExitSequenceHex, @"13 03 03", SECTION_EXPERIMENTAL @"Bytes to send to a matching session before quitting, as space-separated hex.\nThe default 13 03 03 is Ctrl-S (stash current prompt) followed by Ctrl-C twice: the first Ctrl-C prompts Claude Code to print its resumable session id, and the second causes it to exit cleanly.");
+DEFINE_INT(claudeGracefulExitInitialDelayMS, 300, SECTION_EXPERIMENTAL @"Graceful exit: delay in milliseconds between the first byte and the rest of the exit sequence.\nGives Claude Code time to stash the current prompt (Ctrl-S) before the Ctrl-C pair is sent. Set to 0 to send all bytes without a pause.");
+DEFINE_FLOAT(claudeGracefulExitTimeoutSeconds, 3.0, SECTION_EXPERIMENTAL @"How long in seconds to wait for gracefully-exited sessions to terminate before quitting anyway.\nKept short because the OS imposes its own deadline during shutdown.");
+DEFINE_BOOL(claudeGracefulExitSystemShutdownOnly, NO, SECTION_EXPERIMENTAL @"Only gracefully exit matching sessions during a system shutdown/restart/logout?\nWhen off, this also happens on a manual Cmd-Q.");
 DEFINE_BOOL(useExperimentalFontMetrics, NO, SECTION_EXPERIMENTAL @"Use a more theoretically correct technique to measure line height.\nYou must restart iTerm2 or adjust a session's font size for this change to take effect.");
 DEFINE_BOOL(fastForegroundJobUpdates, YES, SECTION_EXPERIMENTAL @"Enable low-latency updates of the current foreground job");
 
