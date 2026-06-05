@@ -398,6 +398,13 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
     // Has the underlying connection been closed?
     BOOL _exited;
 
+    // YES when the session was intentionally killed for parking (saves memory).
+    // Cleared when the session is revived via replaceTerminatedShellWithNewInstance.
+    BOOL _isParked;
+
+    // Last time this session was the focused (foreground) pane.
+    NSDate *_lastForegroundDate;
+
     // A view that wraps the textview. It is the scrollview's document. This exists to provide a
     // top margin above the textview.
     TextViewWrapper *_wrapper;
@@ -754,6 +761,7 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
 
         _lastOutputIgnoringOutputAfterResizing = _lastInput;
         _lastUpdate = _lastInput;
+        _lastForegroundDate = [[NSDate date] retain];
         _pasteHelper = [[iTermPasteHelper alloc] init];
         _pasteHelper.delegate = self;
 
@@ -1174,6 +1182,7 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
     [_browserTarget release];
     [_bindings release];
     [_apsContext release];
+    [_lastForegroundDate release];
 
     [super dealloc];
 }
@@ -3593,6 +3602,28 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     }];
 }
 
+- (BOOL)isParked {
+    return _isParked;
+}
+
+- (BOOL)focused {
+    return _focused;
+}
+
+- (void)setIsParked:(BOOL)parked {
+    _isParked = parked;
+}
+
+- (NSDate *)lastForegroundDate {
+    return _lastForegroundDate;
+}
+
+- (void)setLastForegroundDate:(NSDate *)date {
+    [date retain];
+    [_lastForegroundDate release];
+    _lastForegroundDate = date;
+}
+
 - (void)makeTerminationUndoable {
     _shell.paused = YES;
     [_textview setDataSource:nil];
@@ -3678,6 +3709,17 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     } else {
         return NO;
     }
+}
+
+- (void)park {
+    if (_exited || _isParked || self.isTmuxClient || self.isBrowserSession) {
+        return;
+    }
+    DLog(@"Parking session %@", self);
+    _isParked = YES;
+    // Sends SIGHUP to the process group (shell + all descendants).
+    // brokenPipeWithError: will fire asynchronously on the main queue.
+    [_shell killWithMode:iTermJobManagerKillingModeProcessGroup];
 }
 
 - (void)broadcastDomainsDidChange:(NSNotification *)notification {
@@ -4273,6 +4315,17 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     }
     // Ensure we don't leak the monoserver unix domain socket file descriptor.
     [_shell killWithMode:iTermJobManagerKillingModeBrokenPipe];
+
+    // Parked sessions skip notifications, broken-pipe messages, and close/restart logic.
+    // _isParked is always written on the main thread (in -park) before the kill, and
+    // brokenPipeWithError: is always dispatched to the main queue, so there is no race.
+    if (_isParked) {
+        DLog(@"  brokenPipe: session is parked, entering parked dead state");
+        [self cleanUpAfterBrokenPipe];
+        [self updateDisplayBecause:@"session parked"];
+        return;
+    }
+
     if ([self shouldPostUserNotification] &&
         [iTermProfilePreferences boolForKey:KEY_SEND_SESSION_ENDED_ALERT inProfile:self.profile]) {
         NSString *customText = [iTermAdvancedSettingsModel sessionEndMessageText];
@@ -8715,6 +8768,9 @@ extendResultsAcrossSoftBoundaries:(BOOL)extendResultsAcrossSoftBoundaries {
         [self.delegate sessionDidReportSelectedTmuxPane:self];
     }
     [self.textview requestDelegateRedraw];
+    if (focused) {
+        self.lastForegroundDate = [NSDate date];
+    }
 }
 
 - (BOOL)wantsContentChangedNotification {

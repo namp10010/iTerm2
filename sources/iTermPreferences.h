@@ -349,6 +349,9 @@ extern NSString *const kPreferenceKeyDisableTransparencyForKeyWindow;
 extern NSString *const kPreferenceKeyNeverBlockSystemShutdown;
 extern NSString *const kPreferenceKeyMenuActionImages;
 
+extern NSString *const kPreferenceKeyTabParkingEnabled;
+extern NSString *const kPreferenceKeyTabParkingTimeout;
+
 extern NSString *const iTermDefaultAIPrompt;
 
 @interface iTermPreferences : NSObject

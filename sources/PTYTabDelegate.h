@@ -29,7 +29,10 @@ typedef NS_OPTIONS(NSUInteger, PTYTabState) {
     kPTYTabNewOutputState = (1 << 2),
 
     // A session has ended.
-    kPTYTabDeadState = (1 << 3)
+    kPTYTabDeadState = (1 << 3),
+
+    // Session was intentionally parked to save memory.
+    kPTYTabParkedState = (1 << 4)
 };
 
 @protocol PTYTabDelegate<iTermSwipeHandler, NSObject>

@@ -6758,6 +6758,15 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     }
     self.closingLastVisibleTab = NO;
 
+    // Auto-revive sessions that were parked to save memory.
+    // replaceTerminatedShellWithNewInstance is safe here: parking goes through brokenPipe
+    // (not terminate:), so terminalEnabled remains YES and _exited is YES as required.
+    PTYSession *parkedSession = [tab activeSession];
+    if (parkedSession.isParked && parkedSession.exited) {
+        parkedSession.isParked = NO;
+        [parkedSession replaceTerminatedShellWithNewInstance];
+    }
+
     [_contentView.tabBarControl setFlashing:YES];
 
     if (self.autoCommandHistorySessionGuid) {

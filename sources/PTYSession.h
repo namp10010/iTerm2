@@ -482,6 +482,17 @@ backgroundColor:(NSColor *)backgroundColor;
 @property(nonatomic, readonly) BOOL logging;
 @property(nonatomic, readonly) BOOL exited;
 
+// YES between the moment the session is intentionally killed for parking
+// and the moment replaceTerminatedShellWithNewInstance is called to revive it.
+@property(nonatomic, assign) BOOL isParked;
+
+// Last time this session was the focused (foreground) pane. Used by the
+// parking controller to compute how long the tab has been unvisited.
+@property(nonatomic, strong) NSDate *lastForegroundDate;
+
+// Whether this session currently has keyboard/mouse focus (its textview is first responder).
+@property(nonatomic, readonly) BOOL focused;
+
 // Is bell currently in ringing state?
 @property(nonatomic, assign) BOOL bell;
 
@@ -792,6 +803,11 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 // Tries to revive a terminated session. Returns YES on success. It should be re-added to a tab if
 // after reviving.
 - (BOOL)revive;
+
+// Intentionally kills the shell and all child processes to free memory while preserving the tab
+// and its scrollback. Sets isParked=YES so the tab shows a parking indicator instead of the
+// skull icon. Call replaceTerminatedShellWithNewInstance to revive.
+- (void)park;
 
 // Preferences
 - (void)setPreferencesFromAddressBookEntry: (NSDictionary *)aePrefs;

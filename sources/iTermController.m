@@ -71,6 +71,7 @@
 #import "iTermSystemVersion.h"
 #import "iTermUserDefaults.h"
 #import "iTermWarning.h"
+#import "iTermTabParkingController.h"
 #import "iTermWebSocketCookieJar.h"
 
 #include <objc/runtime.h>
@@ -149,6 +150,7 @@ static iTermController *gSharedInstance;
         _restorableSessions = [[NSMutableArray alloc] init];
         _currentRestorableSessionsStack = [[NSMutableArray alloc] init];
         [iTermNotificationController sharedInstance];
+        [[iTermTabParkingController sharedInstance] start];
 
         [[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self
                                                                selector:@selector(workspaceWillPowerOff:)
