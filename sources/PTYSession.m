@@ -3610,6 +3610,10 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     return _focused;
 }
 
+- (NSTimeInterval)lastOutputTimeInterval {
+    return _lastOutputIgnoringOutputAfterResizing;
+}
+
 - (void)setIsParked:(BOOL)parked {
     _isParked = parked;
 }

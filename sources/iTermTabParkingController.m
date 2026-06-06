@@ -5,7 +5,7 @@
 #import "iTermPreferences.h"
 #import "PTYSession.h"
 
-static const NSTimeInterval kParkingCheckInterval = 60.0;
+static const NSTimeInterval kParkingCheckInterval = 15.0;
 
 @implementation iTermTabParkingController {
     iTermGCDTimer *_timer;
@@ -65,8 +65,12 @@ static const NSTimeInterval kParkingCheckInterval = 60.0;
     if ([session.lastForegroundDate compare:threshold] == NSOrderedDescending) {
         return;
     }
-    // Don't park sessions with a nontrivial foreground job (active build, vim, Claude, etc.)
-    if (session.hasNontrivialJob) {
+    // The terminal must also have had no output for at least as long.
+    // This keeps actively-responding Claude sessions alive while idle ones get parked.
+    // Using terminal output rather than hasNontrivialJob so that long-running background
+    // processes (e.g. node/Claude Code waiting for input) don't block parking.
+    NSTimeInterval thresholdInterval = [threshold timeIntervalSinceReferenceDate];
+    if (session.lastOutputTimeInterval > thresholdInterval) {
         return;
     }
     [session park];

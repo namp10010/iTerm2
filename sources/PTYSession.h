@@ -493,6 +493,10 @@ backgroundColor:(NSColor *)backgroundColor;
 // Whether this session currently has keyboard/mouse focus (its textview is first responder).
 @property(nonatomic, readonly) BOOL focused;
 
+// timeIntervalSinceReferenceDate of the last terminal output received.
+// Initialised to [NSDate timeIntervalSinceReferenceDate] at session creation.
+@property(nonatomic, readonly) NSTimeInterval lastOutputTimeInterval;
+
 // Is bell currently in ringing state?
 @property(nonatomic, assign) BOOL bell;
 
