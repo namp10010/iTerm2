@@ -813,6 +813,15 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 // skull icon. Call replaceTerminatedShellWithNewInstance to revive.
 - (void)park;
 
+// Force-kills all remaining processes via the unrestorable kill path. Called after a
+// graceful-exit sequence has been sent and we want to ensure nothing lingers.
+- (void)forceKillRemainingProcesses;
+
+// Set by the parking controller after a Claude Code session exits gracefully during parking.
+// Contains the full command to inject into the new shell on unpark (e.g. "claude --resume <id>").
+// Nil if no Claude session was hibernated.
+@property(nonatomic, copy) NSString *parkedClaudeResumeCommand;
+
 // Preferences
 - (void)setPreferencesFromAddressBookEntry: (NSDictionary *)aePrefs;
 - (void)loadInitialColorTableAndResetCursorGuide;

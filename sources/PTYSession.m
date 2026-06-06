@@ -405,6 +405,10 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
     // Last time this session was the focused (foreground) pane.
     NSDate *_lastForegroundDate;
 
+    // Resume command captured during Claude hibernation (e.g. "claude --resume abc123").
+    // Nil when parking without a Claude session, or when no session ID was captured.
+    NSString *_parkedClaudeResumeCommand;
+
     // A view that wraps the textview. It is the scrollview's document. This exists to provide a
     // top margin above the textview.
     TextViewWrapper *_wrapper;
@@ -1183,6 +1187,7 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
     [_bindings release];
     [_apsContext release];
     [_lastForegroundDate release];
+    [_parkedClaudeResumeCommand release];
 
     [super dealloc];
 }
@@ -3626,6 +3631,20 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     [date retain];
     [_lastForegroundDate release];
     _lastForegroundDate = date;
+}
+
+- (NSString *)parkedClaudeResumeCommand {
+    return _parkedClaudeResumeCommand;
+}
+
+- (void)setParkedClaudeResumeCommand:(NSString *)command {
+    [command retain];
+    [_parkedClaudeResumeCommand release];
+    _parkedClaudeResumeCommand = command;
+}
+
+- (void)forceKillRemainingProcesses {
+    [_shell killWithMode:iTermJobManagerKillingModeForceUnrestorable];
 }
 
 - (void)makeTerminationUndoable {
