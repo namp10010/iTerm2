@@ -821,6 +821,11 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 // send control characters (e.g. Ctrl-S, Ctrl-C) without racing the IO thread.
 - (void)writeDataForParking:(NSData *)data;
 
+// Resume command captured from the terminal output when Claude Code was gracefully
+// parked (e.g. "claude --resume 2eb68199-..."). Nil if no Claude session was parked
+// or the ID could not be found. Injected into the new shell on unpark.
+@property(nonatomic, copy) NSString *parkedClaudeResumeCommand;
+
 
 // Preferences
 - (void)setPreferencesFromAddressBookEntry: (NSDictionary *)aePrefs;

@@ -114,18 +114,53 @@ static const NSTimeInterval kClaudeGracePeriodSeconds = 3.0;
         if (!s) return;
         if (remainder) [s writeDataForParking:remainder];
 
-        // Give Claude the grace period to exit on its own, then kill everything
-        // that survived — including processes in separate process groups (golsp,
-        // MCP servers, node itself if it called setsid()).
+        // Give Claude the grace period to exit on its own, then capture the
+        // resume command from the scrollback and kill anything still running.
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
                                      (int64_t)(kClaudeGracePeriodSeconds * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{
             PTYSession *ss = weakSession;
-            if (ss && !ss.exited) {
+            if (!ss) return;
+
+            // Claude prints "claude --resume <uuid>" before exiting; capture it.
+            NSString *resumeCommand = [self extractResumeCommandFromSession:ss];
+            if (resumeCommand) {
+                DLog(@"Tab parking: captured resume command: %@", resumeCommand);
+                ss.parkedClaudeResumeCommand = resumeCommand;
+            }
+
+            if (!ss.exited) {
                 [ss forceKillRemainingProcesses];
             }
         });
     });
+}
+
+// Scans the last portion of the terminal scrollback for the line Claude Code
+// prints on graceful exit: "claude --resume <uuid>".
+- (NSString *)extractResumeCommandFromSession:(PTYSession *)session {
+    NSString *text = [session.screen compactLineDumpWithHistory];
+    if (!text) return nil;
+
+    // Search only the tail — the resume line appears near the end.
+    NSString *tail = text.length > 4000
+        ? [text substringFromIndex:text.length - 4000]
+        : text;
+
+    NSError *err = nil;
+    NSRegularExpression *rx = [NSRegularExpression
+        regularExpressionWithPattern:@"claude\\s+--resume\\s+([A-Za-z0-9_-]{8,})"
+                             options:NSRegularExpressionCaseInsensitive
+                               error:&err];
+    if (!rx) return nil;
+
+    NSTextCheckingResult *m = [rx firstMatchInString:tail
+                                             options:0
+                                               range:NSMakeRange(0, tail.length)];
+    if (!m || m.numberOfRanges < 2) return nil;
+
+    NSString *sessionId = [tail substringWithRange:[m rangeAtIndex:1]];
+    return [NSString stringWithFormat:@"claude --resume %@", sessionId];
 }
 
 @end

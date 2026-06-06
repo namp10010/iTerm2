@@ -402,6 +402,8 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
     // Cleared when the session is revived via replaceTerminatedShellWithNewInstance.
     BOOL _isParked;
 
+    NSString *_parkedClaudeResumeCommand;
+
     // Last time this session was the focused (foreground) pane.
     NSDate *_lastForegroundDate;
 
@@ -1184,6 +1186,7 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
     [_bindings release];
     [_apsContext release];
     [_lastForegroundDate release];
+    [_parkedClaudeResumeCommand release];
 
     [super dealloc];
 }
@@ -3627,6 +3630,16 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     [date retain];
     [_lastForegroundDate release];
     _lastForegroundDate = date;
+}
+
+- (NSString *)parkedClaudeResumeCommand {
+    return _parkedClaudeResumeCommand;
+}
+
+- (void)setParkedClaudeResumeCommand:(NSString *)cmd {
+    [cmd retain];
+    [_parkedClaudeResumeCommand release];
+    _parkedClaudeResumeCommand = cmd;
 }
 
 - (void)writeDataForParking:(NSData *)data {

@@ -6763,8 +6763,22 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     // (not terminate:), so terminalEnabled remains YES and _exited is YES as required.
     PTYSession *parkedSession = [tab activeSession];
     if (parkedSession.isParked && parkedSession.exited) {
+        NSString *resumeCommand = parkedSession.parkedClaudeResumeCommand;
         parkedSession.isParked = NO;
+        parkedSession.parkedClaudeResumeCommand = nil;
         [parkedSession replaceTerminatedShellWithNewInstance];
+
+        // If a Claude session was gracefully parked, resume it once the shell is ready.
+        if (resumeCommand) {
+            __weak PTYSession *weakSession = parkedSession;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                PTYSession *s = weakSession;
+                if (s && !s.exited) {
+                    [s writeTaskNoBroadcast:[resumeCommand stringByAppendingString:@"\n"]];
+                }
+            });
+        }
     }
 
     [_contentView.tabBarControl setFlashing:YES];
