@@ -405,9 +405,6 @@ typedef NS_ENUM(NSUInteger, PTYSessionTurdType) {
     // Last time this session was the focused (foreground) pane.
     NSDate *_lastForegroundDate;
 
-    // Resume command captured during Claude hibernation (e.g. "claude --resume abc123").
-    // Nil when parking without a Claude session, or when no session ID was captured.
-    NSString *_parkedClaudeResumeCommand;
 
     // A view that wraps the textview. It is the scrollview's document. This exists to provide a
     // top margin above the textview.
@@ -1187,7 +1184,6 @@ static NSString *iTermGroupIdFilePath(NSString *sessionId) {
     [_bindings release];
     [_apsContext release];
     [_lastForegroundDate release];
-    [_parkedClaudeResumeCommand release];
 
     [super dealloc];
 }
@@ -3633,17 +3629,23 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     _lastForegroundDate = date;
 }
 
-- (NSString *)parkedClaudeResumeCommand {
-    return _parkedClaudeResumeCommand;
-}
-
-- (void)setParkedClaudeResumeCommand:(NSString *)command {
-    [command retain];
-    [_parkedClaudeResumeCommand release];
-    _parkedClaudeResumeCommand = command;
+- (void)writeDataForParking:(NSData *)data {
+    [_shell writeTask:data];
 }
 
 - (void)forceKillRemainingProcesses {
+    // Walk the full process tree and SIGKILL every descendant, including those
+    // in separate process groups (e.g. Claude Code / node that called setsid()).
+    // This must happen before killing the server, while the PIDs are still valid.
+    pid_t shellPid = [_shell pid];
+    if (shellPid > 0) {
+        [[iTermProcessCache sharedInstance] updateSynchronously];
+        iTermProcessInfo *root = [[iTermProcessCache sharedInstance] processInfoForPid:shellPid];
+        [root enumerateTree:^(iTermProcessInfo *info, BOOL *stop) {
+            kill(info.processID, SIGKILL);
+        }];
+    }
+    // Kill the server to close the PTY master, triggering brokenPipe on our side.
     [_shell killWithMode:iTermJobManagerKillingModeForceUnrestorable];
 }
 

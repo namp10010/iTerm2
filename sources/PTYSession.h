@@ -817,10 +817,10 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 // graceful-exit sequence has been sent and we want to ensure nothing lingers.
 - (void)forceKillRemainingProcesses;
 
-// Set by the parking controller after a Claude Code session exits gracefully during parking.
-// Contains the full command to inject into the new shell on unpark (e.g. "claude --resume <id>").
-// Nil if no Claude session was hibernated.
-@property(nonatomic, copy) NSString *parkedClaudeResumeCommand;
+// Writes raw bytes to the PTY via the normal async IO queue. Used during parking to
+// send control characters (e.g. Ctrl-S, Ctrl-C) without racing the IO thread.
+- (void)writeDataForParking:(NSData *)data;
+
 
 // Preferences
 - (void)setPreferencesFromAddressBookEntry: (NSDictionary *)aePrefs;
