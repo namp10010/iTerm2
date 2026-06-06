@@ -6763,20 +6763,25 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
     // (not terminate:), so terminalEnabled remains YES and _exited is YES as required.
     PTYSession *parkedSession = [tab activeSession];
     if (parkedSession.isParked && parkedSession.exited) {
-        NSString *resumeCommand = parkedSession.parkedClaudeResumeCommand;
         parkedSession.isParked = NO;
-        parkedSession.parkedClaudeResumeCommand = nil;
         [parkedSession replaceTerminatedShellWithNewInstance];
 
-        // If a Claude session was gracefully parked, resume it once the shell is ready.
-        if (resumeCommand) {
+        // Resume a hibernated Claude session once the shell is ready.
+        // Use 1.5 s so zsh's ZLE is fully initialised before we inject;
+        // at 0.8 s the line editor may not be ready and the command can
+        // appear twice (terminal-driver echo + ZLE redraw).
+        // Read the command inside the block and clear it atomically so a
+        // spurious second invocation of this code path finds nil and skips.
+        if (parkedSession.parkedClaudeResumeCommand) {
             __weak PTYSession *weakSession = parkedSession;
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)),
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{
                 PTYSession *s = weakSession;
-                if (s && !s.exited) {
-                    [s writeTaskNoBroadcast:[resumeCommand stringByAppendingString:@"\n"]];
-                }
+                if (!s || s.exited) return;
+                NSString *cmd = s.parkedClaudeResumeCommand;
+                if (!cmd) return;
+                s.parkedClaudeResumeCommand = nil;
+                [s writeTaskNoBroadcast:[cmd stringByAppendingString:@"\n"]];
             });
         }
     }
