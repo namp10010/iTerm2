@@ -3768,6 +3768,7 @@ ITERM_WEAKLY_REFERENCEABLE
     if (tabIndex >= 0 && tabIndex < [_contentView.tabView numberOfTabViewItems]) {
         [_contentView.tabView selectTabViewItemAtIndex:tabIndex];
     }
+    [self updateTabBar];
 
     Profile* addressbookEntry = [[[[[self tabs] objectAtIndex:0] sessions] objectAtIndex:0] profile];
     _spaceSetting = [addressbookEntry[KEY_SPACE] intValue];
@@ -6753,8 +6754,10 @@ hidingToolbeltShouldResizeWindow:(BOOL)hidingToolbeltShouldResizeWindow
             [self createFallbackUngroupedTab];
             return;  // the new tab fires its own didSelectTabViewItem:
         }
-        tab.tabGroup.collapsed = NO;
-        [self updateTabBar];
+        if (!_restoringWindow) {
+            tab.tabGroup.collapsed = NO;
+            [self updateTabBar];
+        }
     }
     self.closingLastVisibleTab = NO;
 
