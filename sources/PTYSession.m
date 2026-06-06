@@ -3633,7 +3633,7 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 }
 
 - (NSString *)parkedClaudeResumeCommand {
-    return _parkedClaudeResumeCommand;
+    return [[_parkedClaudeResumeCommand retain] autorelease];
 }
 
 - (void)setParkedClaudeResumeCommand:(NSString *)cmd {
