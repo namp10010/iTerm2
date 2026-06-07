@@ -15,6 +15,7 @@
 #import "iTermBackgroundCommandRunner.h"
 #import "iTermCommandRunner.h"
 #import "iTermController.h"
+#import "iTermExternalAttributeIndex.h"
 #import "iTermImageInfo.h"
 #import "iTermLaunchServices.h"
 #import "iTermMouseCursor.h"
@@ -109,6 +110,15 @@ iTermCommandInfoViewControllerDelegate>
     _cancelled = cancelled;
 }
 
+@end
+
+// Represents an OSC8 hyperlink found by scanning external attributes.
+@interface iTermOSC8LinkResult : NSObject
+@property (nonatomic) VT100GridAbsCoordRange absRange;
+@property (nonatomic, copy) NSString *urlString;
+@end
+
+@implementation iTermOSC8LinkResult
 @end
 
 #pragma mark -
@@ -2830,6 +2840,71 @@ toggleAnimationOfImage:(id<iTermImageInfoReading>)imageInfo {
     [[NSNotificationCenter defaultCenter] postNotificationName:iTermAnnotationVisibilityDidChange object:nil];
 }
 
+- (NSString *)keyEquivalentForIndex:(NSInteger)i digits:(int)digits {
+    if (i < 10) {
+        return [@(i) stringValue];
+    }
+    NSString *keyEquivalent = @"";
+    NSInteger r = i - 10;
+    while (keyEquivalent.length < digits) {
+        keyEquivalent = [[NSString stringWithLongCharacter:'A' + (r % 26)] stringByAppendingString:keyEquivalent];
+        r /= 26;
+    }
+    return keyEquivalent;
+}
+
+- (NSArray<iTermOSC8LinkResult *> *)osc8LinksInRelativeRange:(VT100GridRange)relativeRange {
+    NSMutableArray<iTermOSC8LinkResult *> *links = [NSMutableArray array];
+    const long long overflow = self.dataSource.totalScrollbackOverflow;
+    const int width = [self.dataSource width];
+
+    iTermURL *currentURL = nil;
+    int startX = 0;
+    int startY = 0;
+    int endX = 0;
+    int endY = 0;
+
+    for (int y = relativeRange.location; y < relativeRange.location + relativeRange.length; y++) {
+        id<iTermExternalAttributeIndexReading> eaIndex = [self.dataSource externalAttributeIndexForLine:y];
+        for (int x = 0; x < width; x++) {
+            iTermExternalAttribute *ea = [eaIndex attributeAtIndex:x];
+            iTermURL *url = ea.url;
+            if (url && url == currentURL) {
+                // Extend current run.
+                endX = x;
+                endY = y;
+                continue;
+            }
+            // Finalise current run if any.
+            if (currentURL) {
+                iTermOSC8LinkResult *result = [[iTermOSC8LinkResult alloc] init];
+                result.absRange = VT100GridAbsCoordRangeMake(startX, startY + overflow,
+                                                              endX, endY + overflow);
+                result.urlString = currentURL.url.absoluteString;
+                [links addObject:result];
+                currentURL = nil;
+            }
+            if (url) {
+                // Start new run.
+                currentURL = url;
+                startX = x;
+                startY = y;
+                endX = x;
+                endY = y;
+            }
+        }
+    }
+    // Finalise trailing run.
+    if (currentURL) {
+        iTermOSC8LinkResult *result = [[iTermOSC8LinkResult alloc] init];
+        result.absRange = VT100GridAbsCoordRangeMake(startX, startY + overflow,
+                                                      endX, endY + overflow);
+        result.urlString = currentURL.url.absoluteString;
+        [links addObject:result];
+    }
+    return links;
+}
+
 - (void)convertVisibleSearchResultsToContentNavigationShortcutsWithAction:(iTermContentNavigationAction)action
                                                                clearOnEnd:(BOOL)clearOnEnd {
     [self removeContentNavigationShortcutsAndSearchResults:NO];
@@ -2839,32 +2914,56 @@ toggleAnimationOfImage:(id<iTermImageInfoReading>)imageInfo {
     __weak __typeof(self) weakSelf = self;
     iTermTextExtractor *extractor = [iTermTextExtractor textExtractorWithDataSource:self.dataSource];
     ContentNavigationShortcutLayerOuter *layerOuter = [[ContentNavigationShortcutLayerOuter alloc] init];
+
+    // Collect regex search results.
     NSMutableArray<SearchResult *> *results = [NSMutableArray array];
     [self.findOnPageHelper enumerateSearchResultsInRangeOfLines:range
                                                           block:^(SearchResult *result) {
         [results addObject:result];
     }];
-    if (results.count == 0) {
-        return;
-    }
     [results sortUsingComparator:^NSComparisonResult(SearchResult *lhs, SearchResult *rhs) {
         if (lhs.internalAbsStartY == rhs.internalAbsStartY) {
             return [@(lhs.internalStartX) compare:@(rhs.internalStartX)];
         }
         return [@(lhs.internalAbsStartY) compare:@(rhs.internalAbsStartY)];
     }];
-    const NSInteger approximateCount = results.count;
+
+    // Scan for OSC8 hyperlinks in visible lines.
+    NSArray<iTermOSC8LinkResult *> *osc8Links = [self osc8LinksInRelativeRange:relativeRange];
+
+    // Deduplicate: build set of start coordinates covered by regex results.
+    NSMutableSet<NSString *> *coveredStarts = [NSMutableSet set];
+    for (SearchResult *result in results) {
+        [coveredStarts addObject:[NSString stringWithFormat:@"%d,%lld",
+                                  result.internalStartX, result.internalAbsStartY]];
+    }
+    NSMutableArray<iTermOSC8LinkResult *> *filteredOSC8Links = [NSMutableArray array];
+    for (iTermOSC8LinkResult *link in osc8Links) {
+        NSString *key = [NSString stringWithFormat:@"%d,%lld",
+                         link.absRange.start.x, (long long)link.absRange.start.y];
+        if (![coveredStarts containsObject:key]) {
+            [filteredOSC8Links addObject:link];
+        }
+    }
+
+    if (results.count == 0 && filteredOSC8Links.count == 0) {
+        return;
+    }
+
+    const NSInteger approximateCount = results.count + filteredOSC8Links.count;
     int digits = 1;
     NSInteger cardinality = 26;
     while (cardinality < approximateCount) {
         digits += 1;
         cardinality *= 26;
     }
+
+    // Create shortcuts for regex results.
     NSInteger i = 0;
     for (SearchResult *result in results) {
-        VT100GridCoordRange range = VT100GridCoordRangeFromAbsCoordRange(result.internalAbsCoordRange,
-                                                                         self.dataSource.totalScrollbackOverflow);
-        VT100GridWindowedRange windowedRange = VT100GridWindowedRangeMake(range,
+        VT100GridCoordRange coordRange = VT100GridCoordRangeFromAbsCoordRange(result.internalAbsCoordRange,
+                                                                              self.dataSource.totalScrollbackOverflow);
+        VT100GridWindowedRange windowedRange = VT100GridWindowedRangeMake(coordRange,
                                                                           result.logicalWindow.location,
                                                                           result.logicalWindow.length);
         NSString *content = [extractor contentInRange:windowedRange
@@ -2877,23 +2976,13 @@ toggleAnimationOfImage:(id<iTermImageInfoReading>)imageInfo {
                                          truncateTail:YES
                                     continuationChars:nil
                                                coords:nil];
-        NSString *folder = [self.dataSource workingDirectoryOnLine:range.start.y];
+        NSString *folder = [self.dataSource workingDirectoryOnLine:coordRange.start.y];
         if (!content.length) {
-            return;
+            continue;
         }
-        id<VT100RemoteHostReading> remoteHost = [self.dataSource remoteHostOnLine:range.start.y];
+        id<VT100RemoteHostReading> remoteHost = [self.dataSource remoteHostOnLine:coordRange.start.y];
         i += 1;
-        NSString *keyEquivalent;
-        if (i < 10) {
-            keyEquivalent = [@(i) stringValue];
-        } else {
-            keyEquivalent = @"";
-            NSInteger r = i - 10;
-            while (keyEquivalent.length < digits) {
-                keyEquivalent = [[NSString stringWithLongCharacter:'A' + (r % 26)] stringByAppendingString:keyEquivalent];
-                r /= 26;
-            }
-        }
+        NSString *keyEquivalent = [self keyEquivalentForIndex:i digits:digits];
         ContentNavigationShortcutView *view =
         [self addShortcutWithRange:result.internalAbsCoordRange
                      keyEquivalent:keyEquivalent
@@ -2909,7 +2998,7 @@ toggleAnimationOfImage:(id<iTermImageInfoReading>)imageInfo {
                                                          view:view
                                                         range:windowedRange];
                         } else {
-                            [strongSelf.delegate textViewOpen:content 
+                            [strongSelf.delegate textViewOpen:content
                                              workingDirectory:folder
                                                    remoteHost:remoteHost];
                         }
@@ -2938,6 +3027,69 @@ toggleAnimationOfImage:(id<iTermImageInfoReading>)imageInfo {
         }];
         [layerOuter addView:view];
     }
+
+    // Create shortcuts for OSC8 hyperlinks not covered by regex results.
+    for (iTermOSC8LinkResult *link in filteredOSC8Links) {
+        VT100GridCoordRange coordRange = VT100GridCoordRangeFromAbsCoordRange(link.absRange,
+                                                                              self.dataSource.totalScrollbackOverflow);
+        NSString *folder = [self.dataSource workingDirectoryOnLine:coordRange.start.y];
+        id<VT100RemoteHostReading> remoteHost = [self.dataSource remoteHostOnLine:coordRange.start.y];
+        NSString *urlString = link.urlString;
+        i += 1;
+        NSString *keyEquivalent = [self keyEquivalentForIndex:i digits:digits];
+        ContentNavigationShortcutView *view =
+        [self addShortcutWithRange:link.absRange
+                     keyEquivalent:keyEquivalent
+                            action:^(id<iTermContentNavigationShortcutView> view,
+                                     NSEvent *event){
+            switch (action) {
+                case iTermContentNavigationActionOpen: {
+                    PTYTextView *strongSelf = weakSelf;
+                    if (strongSelf) {
+                        if (event.modifierFlags & NSEventModifierFlagOption) {
+                            [strongSelf copyString:urlString];
+                            const NSPoint p = view.centerScreenCoordinate;
+                            if (p.x == p.x) {
+                                [ToastWindowController showToastWithMessage:@"Copied"
+                                                                  duration:1
+                                                          screenCoordinate:p
+                                                                 pointSize:12];
+                            }
+                        } else {
+                            [strongSelf.delegate textViewOpen:urlString
+                                             workingDirectory:folder
+                                                   remoteHost:remoteHost];
+                        }
+                    }
+                    break;
+                }
+                case iTermContentNavigationActionCopy: {
+                    PTYTextView *strongSelf = weakSelf;
+                    if (strongSelf) {
+                        if (event.modifierFlags & NSEventModifierFlagOption) {
+                            [strongSelf.delegate writeTask:urlString];
+                        } else {
+                            [strongSelf copyString:urlString];
+                            const NSPoint p = view.centerScreenCoordinate;
+                            if (p.x == p.x) {
+                                [ToastWindowController showToastWithMessage:@"Copied"
+                                                                  duration:1
+                                                          screenCoordinate:p
+                                                                 pointSize:12];
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            [view popWithCompletion:^{
+                [weakSelf removeContentNavigationShortcutView:view];
+            }];
+            [weakSelf.delegate textViewExitShortcutNavigationMode];
+        }];
+        [layerOuter addView:view];
+    }
+
     [layerOuter layoutWithin:self.enclosingScrollView.documentVisibleRect];
     [self refresh];
     [self.delegate textViewEnterShortcutNavigationMode:clearOnEnd];
