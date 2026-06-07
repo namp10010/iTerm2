@@ -4359,6 +4359,16 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     // brokenPipeWithError: is always dispatched to the main queue, so there is no race.
     if (_isParked) {
         DLog(@"  brokenPipe: session is parked, entering parked dead state");
+        // Move the cursor to a new line if it isn't already there.
+        // Without this, zsh's PROMPT_SP prints an extra % on the old prompt
+        // line when a fresh shell starts on unpark.
+        [_screen performBlockWithJoinedThreads:^(VT100Terminal *terminal,
+                                                 VT100ScreenMutableState *mutableState,
+                                                 id<VT100ScreenDelegate> delegate) {
+            if (mutableState.cursorX != 1) {
+                [mutableState appendCarriageReturnLineFeed];
+            }
+        }];
         [self cleanUpAfterBrokenPipe];
         [self updateDisplayBecause:@"session parked"];
         return;
