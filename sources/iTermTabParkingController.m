@@ -7,6 +7,7 @@
 #import "iTermPreferences.h"
 #import "NSStringITerm.h"
 #import "PTYSession.h"
+#import "PTYTab.h"
 
 static const NSTimeInterval kParkingCheckInterval = 15.0;
 // Grace period after sending the exit sequence before force-killing survivors.
@@ -53,6 +54,10 @@ static const NSTimeInterval kClaudeGracePeriodSeconds = 3.0;
     if (session.exited || session.isParked) return;
     if (session.isTmuxClient || session.isBrowserSession) return;
     if (session.focused) return;
+    // Don't park the currently-visible tab even when the terminal window has
+    // lost keyboard focus (e.g. the user switched to another app).
+    PTYTab *tab = (PTYTab *)session.delegate;
+    if (tab == [tab.parentWindow currentTab]) return;
     if ([session.lastForegroundDate compare:threshold] == NSOrderedDescending) return;
 
     // Park only when the terminal has also had no output for at least as long.
