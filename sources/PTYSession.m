@@ -3719,11 +3719,8 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
         [NSObject cancelPreviousPerformRequestsWithTarget:self
                                                  selector:@selector(hardStop)
                                                    object:nil];
-        if (_shell.hasBrokenPipe) {
-            if (self.isRestartable) {
-                [self queueRestartSessionAnnouncement];
-            }
-        } else {
+        const BOOL shouldRestart = _shell.hasBrokenPipe && self.isRestartable;
+        if (!shouldRestart) {
             DLog(@"  revive: exited=NO");
             [self setExited:NO];
         }
@@ -3743,6 +3740,9 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 
         [_view autorelease];  // This balances a retain in -terminate prior to calling -makeTerminationUndoable
         [[NSNotificationCenter defaultCenter] postNotificationName:PTYSessionRevivedNotification object:self];
+        if (shouldRestart) {
+            [self replaceTerminatedShellWithNewInstance];
+        }
         return YES;
     } else {
         return NO;
