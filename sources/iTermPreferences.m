@@ -214,6 +214,9 @@ NSString *const kPreferenceKeyDisableTransparencyForKeyWindow = @"DisableTranspa
 NSString *const kPreferenceKeyNeverBlockSystemShutdown = @"NeverBlockSystemShutdown";
 NSString *const kPreferenceKeyMenuActionImages = @"NSMenuEnableActionImages";
 
+NSString *const kPreferenceKeyTabParkingEnabled = @"TabParkingEnabled";
+NSString *const kPreferenceKeyTabParkingTimeout = @"TabParkingTimeoutMinutes";
+
 NSString *const kPreferenceKeyOpenAIAPIKey = @"NoSyncOpenAIAPIKey";  // deprecated
 NSString *const kPreferenceKeyAIAPIKey = @"NoUserDefaultAIAPIKey";
 NSString *const kPreferenceKeyAIPrompt = @"AI Prompt";
@@ -672,6 +675,9 @@ static NSString *sPreviousVersion;
                   kPreferenceKeyNeverBlockSystemShutdown: @NO,
 
                   kPreferenceKeyMenuActionImages: @YES,
+
+                  kPreferenceKeyTabParkingEnabled: @NO,
+                  kPreferenceKeyTabParkingTimeout: @30,
               };
     }
     return dict;

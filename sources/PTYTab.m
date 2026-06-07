@@ -300,6 +300,12 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
     return [NSImage it_imageNamed:@"dead" forClass:self.class];
 }
 
++ (NSImage *)parkedImageWithAppearance:(NSAppearance *)appearance {
+    // "parkingsign" (a P in a circle) is available on macOS 11+; deployment target is 12.
+    // SF Symbols auto-adapt to light/dark themes so no separate dark-theme asset is needed.
+    return [NSImage it_imageForSymbolName:@"parkingsign" accessibilityDescription:@"Parked"];
+}
+
 + (void)_recursiveRegisterSessionsInArrangement:(NSDictionary *)arrangement {
     if ([arrangement[TAB_ARRANGEMENT_VIEW_TYPE] isEqualToString:VIEW_TYPE_SPLITTER]) {
         for (NSDictionary *subviewDict in arrangement[SUBVIEWS]) {
@@ -732,6 +738,8 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
 - (void)updateIcon {
     if (_aggregatedTabStatus.hasActiveStatus && _aggregatedTabStatus.hasIndicator) {
         [self setIcon:[self tabStatusDotImage]];
+    } else if (_state & kPTYTabParkedState) {
+        [self setIcon:[PTYTab parkedImageWithAppearance:self.realParentWindow.window.effectiveAppearance]];
     } else if (_state & kPTYTabDeadState) {
         [self setIcon:[PTYTab deadImageWithAppearance:self.realParentWindow.window.effectiveAppearance]];
     } else if (_state & kPTYTabBellState) {
@@ -924,7 +932,7 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
 
     if (!session.exited) {
         DLog(@"Clear dead state");
-        [self setState:0 reset:kPTYTabDeadState];
+        [self setState:0 reset:(kPTYTabDeadState | kPTYTabParkedState)];
     }
     [self updateTabTitle];
     [[NSNotificationCenter defaultCenter] postNotificationName:iTermCurrentSessionDidChange
@@ -1490,6 +1498,8 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
         // Session has terminated.
         [self setLabelAttributesForDeadSession];
     } else {
+        // Session is alive; ensure parked icon is cleared (handles revival transition).
+        [self setState:0 reset:kPTYTabParkedState];
         if (![self anySessionIsProcessing]) {
             DLog(@"No session is processing");
             // Too much time has passed since activity occurred and we're idle.
@@ -6592,7 +6602,11 @@ typedef struct {
 
 - (void)setLabelAttributesForDeadSession {
     DLog(@"Session is dead");
-    [self setState:kPTYTabDeadState reset:0];
+    if ([self activeSession].isParked) {
+        [self setState:kPTYTabParkedState reset:kPTYTabDeadState];
+    } else {
+        [self setState:kPTYTabDeadState reset:kPTYTabParkedState];
+    }
 
     if (isProcessing_) {
         [self setIsProcessing:NO];

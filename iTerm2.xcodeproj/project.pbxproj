@@ -1403,6 +1403,8 @@
 		A626DF0C217D3034005600F9 /* iTermTabBarAccessoryViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A626DF0A217D3034005600F9 /* iTermTabBarAccessoryViewController.m */; };
 		4A2B5CE891F7A3D2E60B1927 /* iTermTabGroup.h in Headers */ = {isa = PBXBuildFile; fileRef = 2C7768C035EAD5674DDB4EB9 /* iTermTabGroup.h */; };
 		3DF198DA7D0EF6F2D18CF484 /* iTermTabGroup.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E913A7D638433FCCE490743 /* iTermTabGroup.m */; };
+		A7B1C2D3E4F5A6B7C8D9E0F1 /* iTermTabParkingController.h in Headers */ = {isa = PBXBuildFile; fileRef = A7B1C2D3E4F5A6B7C8D9E0F2 /* iTermTabParkingController.h */; };
+		A7B1C2D3E4F5A6B7C8D9E0F3 /* iTermTabParkingController.m in Sources */ = {isa = PBXBuildFile; fileRef = A7B1C2D3E4F5A6B7C8D9E0F4 /* iTermTabParkingController.m */; };
 		A6275BFF2C7D45140031089D /* KittyImageRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6275BFE2C7D45140031089D /* KittyImageRenderer.swift */; };
 		A6275C112C7D5A050031089D /* KittyImage.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6275C102C7D5A040031089D /* KittyImage.metal */; };
 		A6275C122C7D5A050031089D /* KittyImage.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6275C102C7D5A040031089D /* KittyImage.metal */; };
@@ -6760,6 +6762,8 @@
 		A626DF0A217D3034005600F9 /* iTermTabBarAccessoryViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTermTabBarAccessoryViewController.m; sourceTree = "<group>"; };
 		2C7768C035EAD5674DDB4EB9 /* iTermTabGroup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermTabGroup.h; sourceTree = "<group>"; };
 		8E913A7D638433FCCE490743 /* iTermTabGroup.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTermTabGroup.m; sourceTree = "<group>"; };
+		A7B1C2D3E4F5A6B7C8D9E0F2 /* iTermTabParkingController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermTabParkingController.h; sourceTree = "<group>"; };
+		A7B1C2D3E4F5A6B7C8D9E0F4 /* iTermTabParkingController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTermTabParkingController.m; sourceTree = "<group>"; };
 		A6275BFE2C7D45140031089D /* KittyImageRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KittyImageRenderer.swift; sourceTree = "<group>"; };
 		A6275C102C7D5A040031089D /* KittyImage.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = KittyImage.metal; path = Metal/Shaders/KittyImage.metal; sourceTree = "<group>"; };
 		A62841542CE28B8B00D0796B /* iTermWordExtractor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermWordExtractor.h; sourceTree = "<group>"; };
@@ -13299,6 +13303,8 @@
 				A626DF0A217D3034005600F9 /* iTermTabBarAccessoryViewController.m */,
 				2C7768C035EAD5674DDB4EB9 /* iTermTabGroup.h */,
 				8E913A7D638433FCCE490743 /* iTermTabGroup.m */,
+				A7B1C2D3E4F5A6B7C8D9E0F2 /* iTermTabParkingController.h */,
+				A7B1C2D3E4F5A6B7C8D9E0F4 /* iTermTabParkingController.m */,
 				A6D1784121BC5A1500FE499C /* iTermSavePanelFileFormatAccessory.h */,
 				A6D1784221BC5A1500FE499C /* iTermSavePanelFileFormatAccessory.m */,
 				A6D1784321BC5A1500FE499C /* iTermSavePanelFileFormatAccessory.xib */,
@@ -15502,6 +15508,7 @@
 			files = (
 				A626DF0B217D3034005600F9 /* iTermTabBarAccessoryViewController.h in Headers */,
 				4A2B5CE891F7A3D2E60B1927 /* iTermTabGroup.h in Headers */,
+				A7B1C2D3E4F5A6B7C8D9E0F1 /* iTermTabParkingController.h in Headers */,
 				A667190A1DCE36C3000CE608 /* iTermRootTerminalView.h in Headers */,
 				D5EF7F4036204859817200E0 /* iTermLayoutCalculator.h in Headers */,
 				A667190B1DCE36C3000CE608 /* iTermCarbonHotKeyController.h in Headers */,
@@ -19149,6 +19156,7 @@
 				A6EC8073281F2C2900493544 /* ExternalSearchResult.swift in Sources */,
 				A626DF0C217D3034005600F9 /* iTermTabBarAccessoryViewController.m in Sources */,
 				3DF198DA7D0EF6F2D18CF484 /* iTermTabGroup.m in Sources */,
+				A7B1C2D3E4F5A6B7C8D9E0F3 /* iTermTabParkingController.m in Sources */,
 				A6E5110E24C1729E00D6552D /* iTermAttributedStringProxy.m in Sources */,
 				A6A3EDCA2E0CE2AA00D711DA /* NSMenu+iTerm.m in Sources */,
 				A69FF3C92E14678500AFF7A8 /* SSHCommandRunning.swift in Sources */,

@@ -482,6 +482,21 @@ backgroundColor:(NSColor *)backgroundColor;
 @property(nonatomic, readonly) BOOL logging;
 @property(nonatomic, readonly) BOOL exited;
 
+// YES between the moment the session is intentionally killed for parking
+// and the moment replaceTerminatedShellWithNewInstance is called to revive it.
+@property(nonatomic, assign) BOOL isParked;
+
+// Last time this session was the focused (foreground) pane. Used by the
+// parking controller to compute how long the tab has been unvisited.
+@property(nonatomic, strong) NSDate *lastForegroundDate;
+
+// Whether this session currently has keyboard/mouse focus (its textview is first responder).
+@property(nonatomic, readonly) BOOL focused;
+
+// timeIntervalSinceReferenceDate of the last terminal output received.
+// Initialised to [NSDate timeIntervalSinceReferenceDate] at session creation.
+@property(nonatomic, readonly) NSTimeInterval lastOutputTimeInterval;
+
 // Is bell currently in ringing state?
 @property(nonatomic, assign) BOOL bell;
 
@@ -792,6 +807,25 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 // Tries to revive a terminated session. Returns YES on success. It should be re-added to a tab if
 // after reviving.
 - (BOOL)revive;
+
+// Intentionally kills the shell and all child processes to free memory while preserving the tab
+// and its scrollback. Sets isParked=YES so the tab shows a parking indicator instead of the
+// skull icon. Call replaceTerminatedShellWithNewInstance to revive.
+- (void)park;
+
+// Force-kills all remaining processes via the unrestorable kill path. Called after a
+// graceful-exit sequence has been sent and we want to ensure nothing lingers.
+- (void)forceKillRemainingProcesses;
+
+// Writes raw bytes to the PTY via the normal async IO queue. Used during parking to
+// send control characters (e.g. Ctrl-S, Ctrl-C) without racing the IO thread.
+- (void)writeDataForParking:(NSData *)data;
+
+// Resume command captured from the terminal output when Claude Code was gracefully
+// parked (e.g. "claude --resume 2eb68199-..."). Nil if no Claude session was parked
+// or the ID could not be found. Injected into the new shell on unpark.
+@property(nonatomic, copy) NSString *parkedClaudeResumeCommand;
+
 
 // Preferences
 - (void)setPreferencesFromAddressBookEntry: (NSDictionary *)aePrefs;

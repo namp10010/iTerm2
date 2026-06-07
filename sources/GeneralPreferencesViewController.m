@@ -235,6 +235,11 @@ enum {
     IBOutlet NSButton *_enableRTL;
     IBOutlet NSButton *_sshIntegrationForURLs;
 
+    // Tab parking (idle memory savings)
+    IBOutlet NSButton *_tabParkingEnabled;
+    IBOutlet NSTextField *_tabParkingTimeout;
+    IBOutlet NSTextField *_tabParkingTimeoutLabel;
+
     NSString *_lastModel;
 }
 
@@ -1000,6 +1005,16 @@ enum {
                      key:kPreferenceKeySshIntegrationForURLs
              relatedView:nil
                     type:kPreferenceInfoTypeCheckbox];
+
+    [self defineControl:_tabParkingEnabled
+                    key:kPreferenceKeyTabParkingEnabled
+            relatedView:nil
+                   type:kPreferenceInfoTypeCheckbox];
+    PreferenceInfo *tabParkingTimeoutInfo = [self defineControl:_tabParkingTimeout
+                                                            key:kPreferenceKeyTabParkingTimeout
+                                                    relatedView:_tabParkingTimeoutLabel
+                                                           type:kPreferenceInfoTypeIntegerTextField];
+    tabParkingTimeoutInfo.range = NSMakeRange(1, 1440);
 
     [self validatePlugin];
     [self updateEnabledState];
