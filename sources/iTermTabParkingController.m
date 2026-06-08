@@ -94,6 +94,17 @@ static const NSTimeInterval kClaudeGracePeriodSeconds = 3.0;
     // the eventual brokenPipe routes through the parked (not dead) code path.
     session.isParked = YES;
 
+    // Capture the working directory now, while Claude is still the foreground job
+    // and the shell's cwd is valid. The relaunched shell on unpark would otherwise
+    // start in the session's *original* directory (env[PWD] is fixed at creation),
+    // so a Claude session started after a `cd` would resume in the wrong directory
+    // and `claude --resume` would report "session not found". We fold a `cd` into
+    // the resume command below. Captured synchronously here (rather than via the
+    // async accessor) so the value is a plain local the blocks below capture
+    // directly; in the common case it is the shell-integration-cached prompt
+    // directory, so the "potentially slow" proc resolution rarely runs.
+    NSString *cwd = [session currentLocalWorkingDirectory];
+
     NSData *sequence = [NSString dataForHexCodes:
                         [iTermAdvancedSettingsModel claudeGracefulExitSequenceHex]];
     if (sequence.length == 0) {
@@ -130,6 +141,14 @@ static const NSTimeInterval kClaudeGracePeriodSeconds = 3.0;
             // Claude prints "claude --resume <uuid>" before exiting; capture it.
             NSString *resumeCommand = [self extractResumeCommandFromSession:ss];
             if (resumeCommand) {
+                // Restore the directory the session was running in so Claude's
+                // per-project resume can find the session. One atomic shell line
+                // guarantees the cd happens before the resume.
+                if (cwd.length > 0) {
+                    resumeCommand = [NSString stringWithFormat:@"cd %@ && %@",
+                                     [cwd stringWithEscapedShellCharactersIncludingNewlines:YES],
+                                     resumeCommand];
+                }
                 DLog(@"Tab parking: captured resume command: %@", resumeCommand);
                 ss.parkedClaudeResumeCommand = resumeCommand;
             }
