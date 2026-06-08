@@ -301,9 +301,7 @@ static void SetAgainstGrainDim(BOOL isVertical, NSSize *dest, CGFloat value) {
 }
 
 + (NSImage *)parkedImageWithAppearance:(NSAppearance *)appearance {
-    // "parkingsign" (a P in a circle) is available on macOS 11+; deployment target is 12.
-    // SF Symbols auto-adapt to light/dark themes so no separate dark-theme asset is needed.
-    return [NSImage it_imageForSymbolName:@"parkingsign" accessibilityDescription:@"Parked"];
+    return [NSImage it_imageForSymbolName:@"pause.circle" accessibilityDescription:@"Parked"];
 }
 
 + (void)_recursiveRegisterSessionsInArrangement:(NSDictionary *)arrangement {
