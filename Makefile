@@ -269,6 +269,7 @@ Beta:
 	chmod -R go+rX $(BUILD_DIR)/Beta
 
 Deployment:
+	/bin/rm -rf $(dir $(BUILD_DIR))Intermediates.noindex/PrecompiledHeaders/SharedPrecompiledHeaders
 	xcodebuild -scheme iTerm2 -configuration Deployment -destination 'platform=macOS' -skipPackagePluginValidation $(SIGNING_FLAGS) $(ARCH_FLAGS) SYMROOT="$(BUILD_DIR)" ENABLE_ADDRESS_SANITIZER=NO && \
 	chmod -R go+rX $(BUILD_DIR)/Deployment
 

@@ -7,9 +7,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - When in a new worktree, init all git submodules before building: `git submodule update --init --recursive`
 - `make run` -- build Development config and launch the app
 - `tools/build.sh` (or `tools/build.sh Development`) -- debug build only, logs to `tmp/build.log`
+- `make install` -- build Deployment config and install to `/Applications/iTerm.app`
 - `make test` -- run all unit tests
 - `tools/run_tests.expect ModernTests/TestClass/testMethod` -- run a single test
 - `tools/add_file_to_xcodeproj.rb <file_path> <target_name>` -- add a new file to the Xcode project (e.g., `tools/add_file_to_xcodeproj.rb sources/Example.swift iTerm2SharedARC`)
+
+### Fixing stale precompiled header errors
+
+If `make install` (Deployment config) fails with `AST Deserialization Issue: file has been modified since the precompiled header was built`, the shared PCH cache is stale. This typically happens after a `make run` (Development) regenerates `BrowserExtensionShared.modulemap`. The `Deployment` Makefile target now clears `SharedPrecompiledHeaders` automatically before each build, so simply re-running `make install` should resolve it. If it persists, manually clear the cache:
+
+```sh
+/bin/rm -rf ~/Library/Developer/Xcode/DerivedData/iTerm2-*/Build/Intermediates.noindex/PrecompiledHeaders/SharedPrecompiledHeaders
+make install
+```
 
 ## Architecture
 
