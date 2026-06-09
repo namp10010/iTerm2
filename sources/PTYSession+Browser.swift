@@ -423,6 +423,15 @@ extension PTYSession: iTermBrowserViewControllerDelegate {
         return false
     }
 
+    func browserViewController(_ controller: iTermBrowserViewController,
+                               performKeyEquivalent event: NSEvent) -> Bool {
+        // Offer the key equivalent to iTerm's main menu before WKWebView sees it. The
+        // menu only claims events that match an enabled menu item (e.g. Cmd-W → close),
+        // so web-only shortcuts still reach the web app. This mirrors the terminal path
+        // in PTYTextView.performKeyEquivalent.
+        return NSApp.mainMenu?.performKeyEquivalent(with: event) ?? false
+    }
+
     func browserViewControllerToggleSetting(_ controller: iTermBrowserViewController,
                                             key: String,
                                             isProfile: Bool) {

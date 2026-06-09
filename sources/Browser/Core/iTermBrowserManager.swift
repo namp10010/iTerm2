@@ -75,6 +75,7 @@ protocol iTermBrowserManagerDelegate: AnyObject, iTermBrowserFindManagerDelegate
     func browserManagerBroadcastWebViews(_ browserManager: iTermBrowserManager) -> [iTermBrowserWebView]
     func browserManager<T>(_ browserManager: iTermBrowserManager, announce: BrowserAnnouncement<T>) async -> T?
     func browserManager(_ browserManager: iTermBrowserManager, handleKeyDown event: NSEvent) -> Bool
+    func browserManager(_ browserManager: iTermBrowserManager, performKeyEquivalent event: NSEvent) -> Bool
 }
 
 @available(macOS 11.0, *)
@@ -843,6 +844,10 @@ extension iTermBrowserManager: iTermBrowserWebViewDelegate {
         }
         copyModeHandler?.handle(event)
         return true
+    }
+
+    func webView(_ webView: iTermBrowserWebView, performKeyEquivalent event: NSEvent) -> Bool {
+        return delegate?.browserManager(self, performKeyEquivalent: event) == true
     }
 
     func webView(_ webView: iTermBrowserWebView,
