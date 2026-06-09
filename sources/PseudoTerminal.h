@@ -373,6 +373,14 @@ extern NSString *const iTermDidCreateTerminalWindowNotification;
 - (void)addSession:(PTYSession *)session inTabAtIndex:(NSNumber *)tabIndex;
 - (void)customizeCollectionBehaviorForProfile:(Profile *)profile;
 
+// For a hotkey window, returns the profile a new tab should inherit: the current
+// session's profile (un-divorced via profileForCreatingNewSessionBasedOn:), so a
+// new tab stays on the hotkey profile rather than falling back to the global
+// Default. Returns nil for non-hotkey windows, meaning "use the default profile".
+// If the source session was divorced, *divorced is set to YES and callers must
+// divorce the newly created session.
+- (Profile *)profileForNewTabInheritingCurrentSessionDivorced:(BOOL *)divorced;
+
 - (IBAction)newTmuxWindow:(id)sender;
 - (IBAction)newTmuxTab:(id)sender;
 - (void)newTmuxTabAtIndex:(NSNumber *)index;

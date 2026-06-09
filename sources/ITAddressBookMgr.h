@@ -327,6 +327,7 @@ extern NSString *const iTermProgressBarColorSchemeOrange;
 #define KEY_HOTKEY_ACTIVATE_WITH_MODIFIER     @"HotKey Activated By Modifier"
 #define KEY_HOTKEY_MODIFIER_ACTIVATION        @"HotKey Modifier Activation"
 #define KEY_HOTKEY_ALTERNATE_SHORTCUTS        @"HotKey Alternate Shortcuts"
+#define KEY_HOTKEY_WINDOW_TAB_BAR_POSITION    @"HotKey Window Tab Bar Position"  // -1 = follow global setting; otherwise TAB_POSITION_*
 #define KEY_USE_LIBTICKIT_PROTOCOL            @"Use libtickit protocol"
 
 #define KEY_LEFT_CONTROL                      @"Left Control Key"  // iTermBuckyBit

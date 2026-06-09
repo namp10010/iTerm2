@@ -25,6 +25,7 @@
                 <outlet property="_removeAdditional" destination="jYf-Zp-VXL" id="d1T-Td-z07"/>
                 <outlet property="_showAutoHiddenWindowOnAppActivation" destination="6tA-bg-olR" id="xeh-Kh-41E"/>
                 <outlet property="_showIfNoWindowsOpenOnDockClick" destination="ieU-bS-a2y" id="5dM-Ox-fcX"/>
+                <outlet property="_tabBarPosition" destination="tbp-pu-001" id="tbp-ol-001"/>
                 <outlet property="_tableView" destination="W6A-ea-Crk" id="6cW-ap-g4Q"/>
                 <outlet property="window" destination="J17-Oy-pHl" id="awo-N1-1aW"/>
             </connections>
@@ -257,6 +258,34 @@ Gw
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tbp-lb-l01">
+                        <rect key="frame" x="277" y="185" width="128" height="17"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Tab bar position:" id="tbp-lb-c01">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tbp-pu-001">
+                        <rect key="frame" x="410" y="181" width="150" height="26"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="tbp-pu-c01">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message"/>
+                            <menu key="menu" id="tbp-mn-001">
+                                <items>
+                                    <menuItem title="Use Global Setting" tag="-1" id="tbp-mi-001"/>
+                                    <menuItem title="Top" tag="0" id="tbp-mi-002"/>
+                                    <menuItem title="Bottom" tag="1" id="tbp-mi-003"/>
+                                    <menuItem title="Left" tag="2" id="tbp-mi-004"/>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <connections>
+                            <action selector="settingChanged:" target="-2" id="tbp-ac-001"/>
+                        </connections>
+                    </popUpButton>
                 </subviews>
             </view>
             <point key="canvasLocation" x="627" y="533.5"/>

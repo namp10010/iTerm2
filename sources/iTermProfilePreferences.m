@@ -394,6 +394,7 @@ typedef struct {
             KEY_HOTKEY_MODIFIER_FLAGS, KEY_HOTKEY_KEY_CODE,
             KEY_HOTKEY_DOCK_CLICK_ACTION,
             KEY_HOTKEY_MODIFIER_ACTIVATION,
+            KEY_HOTKEY_WINDOW_TAB_BAR_POSITION,
 
             KEY_SCREEN, KEY_SET_LOCALE_VARS, KEY_SPACE,
             KEY_TITLE_COMPONENTS,
@@ -796,6 +797,7 @@ typedef struct {
             KEY_HOTKEY_FLOAT:                                       @"Whether hotkey window floats above other windows",
             KEY_HOTKEY_DOCK_CLICK_ACTION:                           @"Action when clicking dock icon for hotkey window",
             KEY_HOTKEY_MODIFIER_ACTIVATION:                         @"Modifier key combination for double-tap activation",
+            KEY_HOTKEY_WINDOW_TAB_BAR_POSITION:                     @"Tab bar position for the hotkey window (-1 = follow global setting)",
             KEY_HOTKEY_ACTIVATE_WITH_MODIFIER:                      @"Whether double-tap modifier activates hotkey window",
             KEY_HOTKEY_ALTERNATE_SHORTCUTS:                         @"Additional keyboard shortcuts for hotkey window",
             KEY_SESSION_HOTKEY:                                     @"Keyboard shortcut to switch to this session",
@@ -1141,6 +1143,7 @@ typedef struct {
                   KEY_HOTKEY_MODIFIER_ACTIVATION: @0,
                   KEY_HOTKEY_ACTIVATE_WITH_MODIFIER: @NO,
                   KEY_HOTKEY_ALTERNATE_SHORTCUTS: @[],
+                  KEY_HOTKEY_WINDOW_TAB_BAR_POSITION: @(-1),
                   KEY_SESSION_HOTKEY: @{},
                   KEY_TITLE_COMPONENTS : @(iTermTitleComponentsJob),
                   KEY_TITLE_FUNC: [NSNull null],

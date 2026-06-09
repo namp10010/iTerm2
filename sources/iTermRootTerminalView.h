@@ -71,6 +71,11 @@
 - (void)rootTerminalViewDidLayoutSubviews;
 - (NSString *)rootTerminalViewCurrentTabSubtitle;
 - (id<PSMPUAFontProvider>)rootTerminalViewPUAFontProvider;
+
+// The effective tab-bar position for this window. Normally the global
+// kPreferenceKeyTabPosition preference, but a hotkey window may override it
+// from its profile. Returns a TAB_POSITION_* value.
+- (NSInteger)rootTerminalViewTabBarPosition;
 @end
 
 extern const NSInteger iTermRootTerminalViewWindowNumberLabelMargin;
