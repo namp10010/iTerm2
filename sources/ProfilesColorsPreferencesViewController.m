@@ -60,6 +60,11 @@ static NSString * const kColorGalleryURL = @"https://www.iterm2.com/colorgallery
     IBOutlet iTermSettingsColorWell *_ansi15Color;
     IBOutlet iTermSettingsColorWell *_foregroundColor;
     IBOutlet iTermSettingsColorWell *_backgroundColor;
+    // Mirror of _backgroundColor shown only for browser profiles (the standard well lives in a
+    // terminal-only section). Bound to the same KEY_BACKGROUND_COLOR so the browser chrome colour
+    // is configurable. Only one of the two is ever visible at a time.
+    IBOutlet iTermSettingsColorWell *_browserBackgroundColor;
+    IBOutlet NSTextField *_browserBackgroundColorLabel;
     IBOutlet NSButton *_useBrightBold;  // Respect bold
     IBOutlet NSButton *_brightenBoldText;
     IBOutlet iTermSettingsColorWell *_boldColor;
@@ -222,6 +227,28 @@ static NSString * const kColorGalleryURL = @"https://www.iterm2.com/colorgallery
         __weak __typeof(self) weakSelf = self;
         info.observer = ^{
             [weakSelf updateHueChromaVisualizationForKey:key];
+        };
+    }
+
+    // Browser profiles hide the standard Background well (it lives in a terminal-only section), so a
+    // mirrored well in a browser-only enclosure is bound to the same key. Both load/save through the
+    // normal mechanism; only the one matching the profile type is ever visible.
+    if (_browserBackgroundColor) {
+        _browserBackgroundColor.colorSpace = [NSColorSpace it_defaultColorSpace];
+        [self defineControl:_browserBackgroundColor
+                        key:KEY_BACKGROUND_COLOR
+                relatedView:nil
+                displayName:@"Background color"
+                       type:kPreferenceInfoTypeColorWell
+             settingChanged:nil
+                     update:nil
+                 searchable:NO];
+        _browserBackgroundColor.action = @selector(settingChanged:);
+        _browserBackgroundColor.target = self;
+        _browserBackgroundColor.continuous = YES;
+        __weak NSView *weakBrowserBackgroundColor = _browserBackgroundColor;
+        _browserBackgroundColor.willClosePopover = ^() {
+            [weakBrowserBackgroundColor.window makeFirstResponder:nil];
         };
     }
 

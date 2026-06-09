@@ -1649,6 +1649,8 @@ CA
                 <outlet property="_ansi9Color" destination="2295" id="3xD-IA-LRt"/>
                 <outlet property="_backgroundColor" destination="2285" id="11Q-XD-XYI"/>
                 <outlet property="_backgroundColorLabel" destination="2281" id="Cji-rI-bBL"/>
+                <outlet property="_browserBackgroundColor" destination="Bg1-Br-We0" id="Bg1-Br-Oc0"/>
+                <outlet property="_browserBackgroundColorLabel" destination="Bg1-Br-Lb0" id="Bg1-Br-Oc1"/>
                 <outlet property="_badgeColor" destination="A9a-sA-67D" id="djP-Vq-hVi"/>
                 <outlet property="_badgeColorLabel" destination="Pyw-da-Q1y" id="x9b-id-c1o"/>
                 <outlet property="_boldColor" destination="2272" id="zhk-0J-m9y"/>
@@ -3283,6 +3285,25 @@ CA
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
+                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bg1-Br-En0" userLabel="Browser Background" customClass="iTermBrowserModeEnclosureNoShift">
+                    <rect key="frame" x="0.0" y="764" width="560" height="24"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bg1-Br-Lb0">
+                            <rect key="frame" x="50" y="4" width="100" height="16"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Background:" id="Bg1-Br-Lc0">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bg1-Br-We0" customClass="iTermSettingsColorWell">
+                            <rect key="frame" x="159" y="2" width="32" height="21"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        </customView>
+                    </subviews>
+                </customView>
             </subviews>
             <accessibility identifier="prefsProfilesColors"/>
             <point key="canvasLocation" x="2346" y="851"/>

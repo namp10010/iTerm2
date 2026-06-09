@@ -5227,6 +5227,26 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
                                                                             inProfile:aDict], iTermAmendedColorKey(KEY_MINIMUM_CONTRAST, aDict, dark));
     [self setMinimumContrast:[iTermProfilePreferences floatForKey:iTermAmendedColorKey(KEY_MINIMUM_CONTRAST, aDict, dark)
                                                         inProfile:aDict]];
+
+    if (self.isBrowserSession) {
+        // Browser sessions paint their own chrome (toolbar/address bar) and don't go through the
+        // textview background-colour-change path that normally refreshes the window chrome. Read the
+        // background colour directly from aDict (the freshly-loaded profile) rather than from
+        // self.profile, which may not be updated yet at this point in the call stack.
+        // Look up the live shared profile so Settings changes are always reflected, even when
+        // aDict is a stale session-specific (divorced) copy. Fall back to aDict if not found.
+        NSString *sharedGuid = aDict[KEY_ORIGINAL_GUID] ?: aDict[KEY_GUID];
+        Profile *liveProfile = [[ProfileModel sharedInstance] bookmarkWithGuid:sharedGuid] ?: aDict;
+        NSString *bgKey = iTermAmendedColorKey(KEY_BACKGROUND_COLOR, liveProfile, dark);
+        NSColor *bgColor = [iTermProfilePreferences colorForKey:bgKey dark:dark profile:liveProfile]
+                           ?: NSColor.windowBackgroundColor;
+        __weak __typeof(self) weakSelf = self;
+        NSColor *capturedColor = bgColor;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakSelf updateAppearanceForMinimalTheme];
+            [weakSelf.view.browserViewController updateChromeColorsWithBackgroundColor:capturedColor];
+        });
+    }
 }
 
 - (NSColor *)effectiveUnprocessedBackgroundColor {
