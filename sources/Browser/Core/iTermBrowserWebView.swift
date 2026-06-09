@@ -42,6 +42,9 @@ protocol iTermBrowserWebViewDelegate: AnyObject {
     func webViewCurrentTabHasMultipleSessions(_ webView: iTermBrowserWebView) -> Bool
     func webView(_ webView: iTermBrowserWebView, didReceiveEvent: iTermBrowserWebView.Event)
     func webView(_ webView: iTermBrowserWebView, handleKeyDown event: NSEvent) -> Bool
+    // Return true if iTerm consumed the key equivalent (e.g. Cmd-W to close the tab).
+    // When false, the event falls through to WKWebView so the web app can handle it.
+    func webView(_ webView: iTermBrowserWebView, performKeyEquivalent event: NSEvent) -> Bool
     func webViewDidChangeEffectiveAppearance(_ webView: iTermBrowserWebView)
 }
 
@@ -318,6 +321,17 @@ class iTermBrowserWebView: iTermBaseWKWebView, iTermEditableTextDetecting {
             return
         }
         super.keyDown(with: event)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Give iTerm's shortcuts first crack at key equivalents (e.g. Cmd-W to close
+        // the tab) so the web content can't swallow window/tab/session shortcuts. The
+        // delegate offers the event to the main menu; anything the menu doesn't claim
+        // falls through to WKWebView below and is handled by the web app as usual.
+        if browserDelegate?.webView(self, performKeyEquivalent: event) == true {
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
     }
 
     override func touchesBegan(with event: NSEvent) {
