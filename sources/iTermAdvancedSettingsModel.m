@@ -800,6 +800,7 @@ DEFINE_SETTABLE_STRING(browserProxyHost, BrowserProxyHost, @"127.0.0.1", SECTION
 DEFINE_SETTABLE_INT(browserProxyPort, BrowserProxyPort, 8118, SECTION_WEB_BROWSER @"HTTP proxy port\nThe port number of the proxy server.");
 DEFINE_FLOAT(webInstantReplayFrameRate, 60.0, SECTION_WEB_BROWSER @"Instant replay frame rate for web browser sessions");
 DEFINE_SETTABLE_STRING(browserPluginPathHint, BrowserPluginPathHint, @"", SECTION_WEB_BROWSER @"Location of browser plugin if it cannot be auto-detected");
+DEFINE_SETTABLE_BOOL(preloadWebBrowserEngine, PreloadWebBrowserEngine, NO, SECTION_WEB_BROWSER @"Preload the web browser engine at startup?\nWhen enabled, iTerm2 warms up WebKit shortly after launch so the first browser tab opens faster. Uses a little extra memory while idle.");
 
 #pragma mark - Experimental Features
 

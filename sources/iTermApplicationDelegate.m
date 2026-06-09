@@ -1677,6 +1677,12 @@ void TurnOnDebugLoggingAutomatically(void) {
 
     [self registerMenuTips];
     [iTermClaudeWatcher start];
+
+    // Warm up the web browser engine (if the user enabled it) so the first
+    // browser tab opens quickly. This loads the WebKit frameworks on a
+    // background thread and creates the warm webview only when the main thread is
+    // idle, so it never competes with startup work.
+    [[iTermBrowserPrewarmer shared] prewarmIfNeeded];
 #if DEBUG
     NSMenu *appMenu = [[[[NSApp mainMenu] itemArray] firstObject] submenu];
     [appMenu addItem:[NSMenuItem separatorItem]];
