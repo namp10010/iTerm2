@@ -5230,15 +5230,9 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 
     if (self.isBrowserSession) {
         // Browser sessions paint their own chrome (toolbar/address bar) and don't go through the
-        // textview background-colour-change path that normally refreshes the window chrome. Read the
-        // background colour directly from aDict (the freshly-loaded profile) rather than from
-        // self.profile, which may not be updated yet at this point in the call stack.
-        // Look up the live shared profile so Settings changes are always reflected, even when
-        // aDict is a stale session-specific (divorced) copy. Fall back to aDict if not found.
-        NSString *sharedGuid = aDict[KEY_ORIGINAL_GUID] ?: aDict[KEY_GUID];
-        Profile *liveProfile = [[ProfileModel sharedInstance] bookmarkWithGuid:sharedGuid] ?: aDict;
-        NSString *bgKey = iTermAmendedColorKey(KEY_BACKGROUND_COLOR, liveProfile, dark);
-        NSColor *bgColor = [iTermProfilePreferences colorForKey:bgKey dark:dark profile:liveProfile]
+        // textview background-colour-change path that normally refreshes the window chrome. Use the
+        // shared helper (which resolves the live shared profile) rather than duplicating the lookup.
+        NSColor *bgColor = [self browserEffectiveBackgroundColorForProfile:aDict]
                            ?: NSColor.windowBackgroundColor;
         __weak __typeof(self) weakSelf = self;
         NSColor *capturedColor = bgColor;
@@ -5250,6 +5244,16 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
 }
 
 - (NSColor *)effectiveUnprocessedBackgroundColor {
+    if (self.isBrowserSession) {
+        // Browser sessions don't render through the textview path, so the colormap holds a stale
+        // default rather than the profile's configured background. Use the live profile colour so
+        // appearance derivations (Minimal tab-bar base, window chrome) reflect what the browser
+        // actually displays, not an unrelated default.
+        NSColor *browserColor = [self browserEffectiveBackgroundColorForProfile:self.profile];
+        if (browserColor) {
+            return browserColor;
+        }
+    }
     NSColor *color = _textview.colorForMargins;
     if (color) {
         return color;
