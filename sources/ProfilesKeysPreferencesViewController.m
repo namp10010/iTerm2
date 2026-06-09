@@ -405,6 +405,7 @@ static NSString *const kDeleteKeyString = @"0x7f-0x0";
     model.animate = [self boolForKey:KEY_HOTKEY_ANIMATE];
     model.floats = [self boolForKey:KEY_HOTKEY_FLOAT];
     model.dockPreference = [self intForKey:KEY_HOTKEY_DOCK_CLICK_ACTION];
+    model.tabBarPositionOverride = [self intForKey:KEY_HOTKEY_WINDOW_TAB_BAR_POSITION];
     [model setAlternateShortcutDictionaries:(id)[self objectForKey:KEY_HOTKEY_ALTERNATE_SHORTCUTS]];
 
     _hotkeyPanel = [[iTermHotkeyPreferencesWindowController alloc] init];

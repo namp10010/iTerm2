@@ -387,7 +387,12 @@ static iTermController *gSharedInstance;
         [[_frontTerminalWindowController currentSession] isTmuxClient]) {
         [_frontTerminalWindowController newTmuxTabAtIndex:index];
     } else {
-        [iTermSessionLauncher launchBookmark:nil
+        // In a hotkey window, inherit the current session's profile so new tabs
+        // stay on the hotkey profile instead of falling back to the global
+        // Default. Returns nil (default behaviour) for non-hotkey windows.
+        BOOL divorced = NO;
+        Profile *profile = [_frontTerminalWindowController profileForNewTabInheritingCurrentSessionDivorced:&divorced];
+        [iTermSessionLauncher launchBookmark:profile
                                   inTerminal:_frontTerminalWindowController
                                        style:iTermOpenStyleTab
                                      withURL:nil
@@ -399,7 +404,12 @@ static iTermController *gSharedInstance;
                                      command:nil
                                  makeSession:nil
                               didMakeSession:nil
-                                  completion:nil];
+                                  completion:^(PTYSession *session, BOOL ok) {
+            if (ok && divorced) {
+                [session divorceAddressBookEntryFromPreferences];
+                [session refreshOverriddenFields];
+            }
+        }];
     }
 }
 

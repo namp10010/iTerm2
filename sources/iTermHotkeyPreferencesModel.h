@@ -26,6 +26,10 @@
 // Radio buttons
 @property(nonatomic, assign) iTermHotKeyDockPreference dockPreference;
 
+// Tab-bar position for the hotkey window. -1 means follow the global setting;
+// otherwise a TAB_POSITION_* value (top/bottom/left).
+@property(nonatomic, assign) NSInteger tabBarPositionOverride;
+
 
 @property(nonatomic, readonly) BOOL hotKeyAssigned;
 @property(nonatomic, readonly) NSDictionary<NSString *, id> *dictionaryValue;

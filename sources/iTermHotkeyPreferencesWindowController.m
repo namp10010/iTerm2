@@ -27,6 +27,9 @@
     IBOutlet NSButton *_animate;
     IBOutlet NSButton *_floats;
 
+    // Tab-bar position override (menu item tags: -1 = use global, otherwise TAB_POSITION_*)
+    IBOutlet NSPopUpButton *_tabBarPosition;
+
     // Radio buttons
     IBOutlet NSButton *_doNotShowOnDockClick;
     IBOutlet NSButton *_alwaysShowOnDockClick;
@@ -74,8 +77,8 @@
 - (void)updateViewsEnabled {
     NSArray<NSView *> *buttons =
         @[ _pinned, _showAutoHiddenWindowOnAppActivation, _animate, _floats, _doNotShowOnDockClick,
-           _alwaysShowOnDockClick, _showIfNoWindowsOpenOnDockClick ];
-    for (NSButton *button in buttons) {
+           _alwaysShowOnDockClick, _showIfNoWindowsOpenOnDockClick, _tabBarPosition ];
+    for (NSControl *button in buttons) {
         button.enabled = self.model.hotKeyAssigned;
     }
     _duplicateWarning.hidden = ![self.descriptorsInUseByOtherProfiles containsObject:self.model.primaryShortcut.descriptor];
@@ -103,6 +106,7 @@
     _showAutoHiddenWindowOnAppActivation.state = _model.showAutoHiddenWindowOnAppActivation ? NSControlStateValueOn : NSControlStateValueOff;
     _animate.state = _model.animate ? NSControlStateValueOn : NSControlStateValueOff;
     _floats.state = _model.floats ? NSControlStateValueOn : NSControlStateValueOff;
+    [_tabBarPosition selectItemWithTag:_model.tabBarPositionOverride];
 
     switch (_model.dockPreference) {
         case iTermHotKeyDockPreferenceDoNotShow:
@@ -134,6 +138,7 @@
     _model.showAutoHiddenWindowOnAppActivation = _showAutoHiddenWindowOnAppActivation.state == NSControlStateValueOn;
     _model.animate = _animate.state == NSControlStateValueOn;
     _model.floats = _floats.state == NSControlStateValueOn;
+    _model.tabBarPositionOverride = [_tabBarPosition selectedTag];
 
     if (_showIfNoWindowsOpenOnDockClick.state == NSControlStateValueOn) {
         _model.dockPreference = iTermHotKeyDockPreferenceShowIfNoOtherWindowsOpen;

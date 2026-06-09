@@ -8508,14 +8508,39 @@ static CGFloat iTermDimmingAmount(PSMTabBarControl *tabView) {
     return nil;
 }
 
+- (Profile *)profileForNewTabInheritingCurrentSessionDivorced:(BOOL *)divorced {
+    if (divorced) {
+        *divorced = NO;
+    }
+    if (![self isHotKeyWindow]) {
+        return nil;
+    }
+    Profile *current = self.currentSession.profile;
+    if (!current) {
+        return nil;
+    }
+    Profile *bookmark = [ProfileModel profileForCreatingNewSessionBasedOn:current];
+    if (divorced) {
+        *divorced = (bookmark != current);
+    }
+    return bookmark;
+}
+
 - (void)tabViewDidClickAddTabButton:(PSMTabBarControl *)tabView {
     if (self.currentSession.isTmuxClient) {
         [self newTmuxTab:nil];
     } else {
-        [iTermSessionLauncher launchBookmark:nil
+        BOOL divorced = NO;
+        Profile *profile = [self profileForNewTabInheritingCurrentSessionDivorced:&divorced];
+        [iTermSessionLauncher launchBookmark:profile
                                   inTerminal:self
                           respectTabbingMode:NO
-                                  completion:nil];
+                                  completion:^(PTYSession *session) {
+            if (divorced) {
+                [session divorceAddressBookEntryFromPreferences];
+                [session refreshOverriddenFields];
+            }
+        }];
     }
 }
 
@@ -10952,6 +10977,20 @@ static BOOL iTermApproximatelyEqualRects(NSRect lhs, NSRect rhs, double epsilon)
 
 - (id<PSMPUAFontProvider>)rootTerminalViewPUAFontProvider {
     return self;
+}
+
+- (NSInteger)rootTerminalViewTabBarPosition {
+    if ([self isHotKeyWindow]) {
+        iTermProfileHotKey *profileHotKey = [[iTermHotKeyController sharedInstance] profileHotKeyForWindowController:self];
+        if (profileHotKey) {
+            const NSInteger override = [iTermProfilePreferences intForKey:KEY_HOTKEY_WINDOW_TAB_BAR_POSITION
+                                                                inProfile:profileHotKey.profile];
+            if (override >= 0) {
+                return override;
+            }
+        }
+    }
+    return [iTermPreferences intForKey:kPreferenceKeyTabPosition];
 }
 
 #pragma mark - PSMPUAFontProvider

@@ -16,6 +16,7 @@
     if (self) {
         _autoHide = YES;
         _animate = YES;
+        _tabBarPositionOverride = -1;
     }
     return self;
 }
@@ -39,6 +40,7 @@
               KEY_HOTKEY_ANIMATE: @(self.animate),
               KEY_HOTKEY_FLOAT: @(self.floats),
               KEY_HOTKEY_DOCK_CLICK_ACTION: @(self.dockPreference),
+              KEY_HOTKEY_WINDOW_TAB_BAR_POSITION: @(self.tabBarPositionOverride),
               KEY_HOTKEY_ALTERNATE_SHORTCUTS: [self alternateShortcutDictionaries] ?: @[] };
 }
 

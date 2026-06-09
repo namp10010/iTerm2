@@ -226,7 +226,7 @@ NS_CLASS_AVAILABLE_MAC(10_14)
         }
         [_tabBarControl setModifier:theModifier];
         _tabBarControl.insets = [self.delegate tabBarInsets];
-        switch ([iTermPreferences intForKey:kPreferenceKeyTabPosition]) {
+        switch ([self.delegate rootTerminalViewTabBarPosition]) {
             case PSMTab_BottomTab:
                 _tabBarControl.orientation = PSMTabBarHorizontalOrientation;
                 [self setTabBarControlAutoresizingMask:(NSViewWidthSizable | NSViewMinYMargin)];
@@ -598,7 +598,7 @@ NS_CLASS_AVAILABLE_MAC(10_14)
     }
     [_windowNumberLabel sizeToFit];
     const NSRect standardButtonsFrame = [self frameForStandardWindowButtons];
-    const CGFloat tabBarHeight = [iTermPreferences intForKey:kPreferenceKeyTabPosition] == PSMTab_LeftTab ? 26.0 : _tabBarControl.height;
+    const CGFloat tabBarHeight = [self.delegate rootTerminalViewTabBarPosition] == PSMTab_LeftTab ? 26.0 : _tabBarControl.height;
     const CGFloat windowNumberHeight = _windowNumberLabel.frame.size.height;
     const CGFloat baselineOffset = -_windowNumberLabel.font.descender;
     const CGFloat capHeight = _windowNumberLabel.font.capHeight;
@@ -1033,7 +1033,7 @@ NS_CLASS_AVAILABLE_MAC(10_14)
     _tabBarBacking.hidden = YES;
     [_tabBarControl removeFromSuperview];
     // Fix size in case we just went from left-of to top-of since it's now going full-width.
-    [self.tabBarControl setTabLocation:[iTermPreferences intForKey:kPreferenceKeyTabPosition]];
+    [self.tabBarControl setTabLocation:[self.delegate rootTerminalViewTabBarPosition]];
     const CGFloat desiredHeight = [self.delegate rootTerminalViewHeightOfTabBar:self];
     _tabBarControl.height = desiredHeight;
     _tabBarControl.frame = NSMakeRect(0, 0, _tabBarControl.frame.size.width, desiredHeight);
@@ -1292,9 +1292,9 @@ NS_CLASS_AVAILABLE_MAC(10_14)
     // The tabBar control is visible.
     DLog(@"repositionWidgets - tabs are visible. Adjusting window size...");
     self.tabBarControl.hidden = NO;
-    [self.tabBarControl setTabLocation:[iTermPreferences intForKey:kPreferenceKeyTabPosition]];
+    [self.tabBarControl setTabLocation:[self.delegate rootTerminalViewTabBarPosition]];
 
-    switch ([iTermPreferences intForKey:kPreferenceKeyTabPosition]) {
+    switch ([self.delegate rootTerminalViewTabBarPosition]) {
         case PSMTab_TopTab: {
             // Place tabs at the top.
             // Add 1px border
@@ -1394,7 +1394,7 @@ NS_CLASS_AVAILABLE_MAC(10_14)
     inputs.inFullscreen = [self.delegate fullScreen] || [self.delegate lionFullScreen];
 
     // Tab position
-    inputs.tabPosition = [iTermPreferences intForKey:kPreferenceKeyTabPosition];
+    inputs.tabPosition = [self.delegate rootTerminalViewTabBarPosition];
 
     // Division view
     inputs.divisionViewVisible = self.delegate.divisionViewShouldBeVisible;
@@ -1859,7 +1859,7 @@ NS_CLASS_AVAILABLE_MAC(10_14)
         return YES;
     }
     BOOL isTop = NO;
-    switch ([iTermPreferences intForKey:kPreferenceKeyTabPosition]) {
+    switch ([self.delegate rootTerminalViewTabBarPosition]) {
         case PSMTab_BottomTab:
         case PSMTab_LeftTab:
             return YES;
