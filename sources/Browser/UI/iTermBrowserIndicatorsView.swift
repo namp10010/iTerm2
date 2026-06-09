@@ -34,6 +34,7 @@ class iTermBrowserIndicatorsView: NSView {
         scrollView.horizontalScrollElasticity = .none
         scrollView.verticalScrollElasticity = .none
         scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
         addSubview(scrollView)
         
         containerView = NSView()

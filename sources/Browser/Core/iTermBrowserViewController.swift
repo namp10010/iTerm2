@@ -64,7 +64,11 @@ protocol iTermBrowserViewControllerDelegate: AnyObject, iTermBrowserFindManagerD
     func browserViewControllerDidBecomeFirstResponder(_ controller: iTermBrowserViewController)
     func browserViewController(_ controller: iTermBrowserViewController, didCopyString string: String)
     func browserViewController(_ controller: iTermBrowserViewController, runCommand command: String)
-    
+
+    // The session's effective background colour, used to paint the browser chrome (the area
+    // around the page and behind the toolbar) so it matches the profile rather than a system theme.
+    func browserViewControllerEffectiveBackgroundColor(_ controller: iTermBrowserViewController) -> NSColor?
+
     // Onboarding delegate methods
     func browserViewControllerOnboardingEnableAdBlocker(_ controller: iTermBrowserViewController)
     func browserViewControllerOnboardingEnableInstantReplay(_ controller: iTermBrowserViewController)
@@ -101,7 +105,7 @@ protocol iTermBrowserViewControllerDelegate: AnyObject, iTermBrowserFindManagerD
 class iTermBrowserViewController: NSViewController {
     private let browserManager: iTermBrowserManager
     private var toolbar: iTermBrowserToolbar!
-    private var backgroundView: NSVisualEffectView!
+    private var backgroundView: NSView!
     private let historyController: iTermBrowserHistoryController
     private let suggestionsController: iTermBrowserSuggestionsController
     private let navigationState = iTermBrowserNavigationState()
@@ -752,6 +756,9 @@ extension iTermBrowserViewController {
     
     override func viewDidAppear() {
         super.viewDidAppear()
+        // Repaint chrome when the session becomes visible — covers the case where the tab was
+        // restored or navigated-to without a fresh iTermBrowserViewController creation.
+        updateChromeColors()
         if !shouldDeferLoading() {
             loadDeferredURLIfNeeded()
         }
@@ -800,10 +807,27 @@ extension iTermBrowserViewController {
 @MainActor
 extension iTermBrowserViewController {
     private func setupBackgroundView() {
-        backgroundView = NSVisualEffectView()
-        backgroundView.material = .contentBackground
-        backgroundView.blendingMode = .behindWindow
+        backgroundView = NSView()
+        backgroundView.wantsLayer = true
         view.addSubview(backgroundView)
+        updateChromeColors()
+    }
+
+    // Paint the browser chrome with the profile's Background colour. The colour is passed directly
+    // so callers can supply a freshly-loaded profile dict rather than relying on self.profile,
+    // which may be a stale divorced copy that hasn't yet received the user's colour edit.
+    @objc func updateChromeColors(backgroundColor: NSColor) {
+        guard let backgroundView else { return }
+        backgroundView.layer?.backgroundColor = backgroundColor.cgColor
+        // Flip the toolbar's appearance so visual-effect subviews (URL bar, indicators) follow
+        // the background colour. Scoped to the toolbar only so web content appearance is untouched.
+        toolbar?.appearance = NSAppearance(named: backgroundColor.isDark ? .darkAqua : .aqua)
+    }
+
+    // Convenience: reads the colour from the delegate (used at view-load time).
+    @objc func updateChromeColors() {
+        let color = delegate?.browserViewControllerEffectiveBackgroundColor(self) ?? .windowBackgroundColor
+        updateChromeColors(backgroundColor: color)
     }
 
     private func setupBrowserManager() {

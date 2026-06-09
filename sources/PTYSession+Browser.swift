@@ -256,6 +256,24 @@ extension PTYSession: iTermBrowserViewControllerDelegate {
         PasteboardHistory.sharedInstance().save(string)
     }
 
+    func browserViewControllerEffectiveBackgroundColor(_ controller: iTermBrowserViewController) -> NSColor? {
+        // Always look up the live shared profile so that changes made in Settings → Profiles are
+        // immediately reflected. self.profile can be a stale session-specific (divorced) copy that
+        // never received the user's colour edit. Fall back to self.profile if the shared profile
+        // is not available (e.g. the session uses a temporary profile with a fresh GUID).
+        let dark = NSApp.effectiveAppearance.it_isDark
+        guard let sessionProfile = profile else { return nil }
+        let guid = (sessionProfile[KEY_ORIGINAL_GUID] as? String) ?? (sessionProfile[KEY_GUID] as? String) ?? ""
+        // Always look up the live shared profile so that Settings changes are reflected
+        // immediately. self.profile can be a stale divorced copy with old colour values.
+        var liveProfile: [AnyHashable: Any] = sessionProfile
+        if let shared = ProfileModel.sharedInstance()?.bookmark(withGuid: guid) as? [AnyHashable: Any] {
+            liveProfile = shared
+        }
+        let key = iTermAmendedColorKey(KEY_BACKGROUND_COLOR, liveProfile, dark)
+        return iTermProfilePreferences.color(forKey: key, dark: dark, profile: liveProfile)
+    }
+
     func browserViewController(_ controller: iTermBrowserViewController, runCommand command: String) {
         guard iTermWarning.show(withTitle: "OK to run:\n\(command)",
                                 actions: ["OK", "Cancel"],

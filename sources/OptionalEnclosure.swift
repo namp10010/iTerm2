@@ -56,6 +56,24 @@ class BrowserModeEnclosure: ModalEnclosure {
     }
 }
 
+// Visible if the profile being edited is in browser mode, but does not shift sibling views beneath
+// it when hidden. Use for a browser-only control placed among shared controls (e.g. the mirrored
+// Background colour well on the Colors tab) so that hiding it for terminal profiles leaves the
+// surrounding layout untouched.
+@objc(iTermBrowserModeEnclosureNoShift)
+@IBDesignable
+class BrowserModeEnclosureNoShift: BrowserModeEnclosure {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        shiftsViewsBeneath = false
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        shiftsViewsBeneath = false
+    }
+}
+
 // Visible if browser is allowed, even if plugin is not installed.
 @objc(iTermHiddenModeEnclosure)
 @IBDesignable
