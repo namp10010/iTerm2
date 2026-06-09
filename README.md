@@ -34,6 +34,79 @@ iTerm2 is a powerful terminal emulator for macOS that brings the terminal into t
 - **Instant Replay** - Scrub backward through terminal history to see exactly what was on screen at any moment, with timestamps. Perfect for catching fleeting errors.
 - **Python Scripting API** - Full automation and customization via Python. Create custom status bar components, triggers, menu items, or entirely new features.
 - **Open Quickly** - Cmd-Shift-O opens a search across all sessions by tab title, command, hostname, directory, or badge. Navigate large session collections instantly.
+- **Tab Parking** - Idle terminal tabs are "parked" after a timeout to reclaim memory: their shell process tree is killed while the tab stays put and revives instantly when clicked. See [Tab Parking (Memory Saving)](#tab-parking-memory-saving).
+
+---
+
+## Tab Parking (Memory Saving)
+
+When you keep many tabs open, the shells (and everything they spawn — language
+servers, MCP servers, Claude Code, etc.) can consume a lot of memory and CPU.
+Tab Parking idles unused terminal tabs to reclaim those resources, similar to how
+Chrome discards inactive tabs.
+
+### What it does
+
+After a configurable idle timeout, an unfocused tab that is not the currently
+visible tab is **parked**: iTerm2 kills the session's shell process group
+(freeing the memory and CPU of those child processes) but keeps the tab's
+in-process model — scrollback, view, and the `PTYSession` — alive. The tab stays
+in the tab bar with a pause icon and **revives instantly** when you click it,
+relaunching the shell.
+
+### How idle is decided
+
+A 15-second timer (`iTermTabParkingController`) parks a session only when **all**
+of these hold:
+
+- it is not focused and not the current tab of its window;
+- its last foreground time (`lastForegroundDate`) is older than the timeout; and
+- its last terminal output (`lastOutputTimeInterval`) is older than the timeout.
+
+### Claude Code sessions
+
+If Claude Code is the foreground job, iTerm2 parks it gracefully: it sends the
+configured graceful-exit sequence, captures the `claude --resume <id>` command
+Claude prints on exit (along with the working directory), and only then
+force-kills any survivors. Clicking the tab relaunches the shell, `cd`s back to
+the original directory, and runs the resume command so the Claude session
+continues where it left off.
+
+### Configuration
+
+Tab Parking is **off by default**. Enable it and set the idle timeout in
+Preferences (backed by `kPreferenceKeyTabParkingEnabled` and
+`kPreferenceKeyTabParkingTimeout`, default 30 minutes).
+
+### Browser tabs are not parked
+
+Browser tabs (browser profiles backed by a `WKWebView`) are **deliberately
+excluded** from parking. Parking is built around killing and relaunching a shell
+process tree, but a browser tab has no shell — its memory lives in WebKit's own
+helper processes (WebContent / Networking / GPU), which the shell-oriented
+parking machinery cannot manage, and the revive path assumes a shell to restart.
+The exclusion lives in `iTermTabParkingController.m`
+(`if (session.isTmuxClient || session.isBrowserSession) return;`). Discarding
+idle browser tabs (tearing down the `WKWebView` and rebuilding it from saved
+state on click) would be a separate, Chrome-style feature.
+
+### A note on memory
+
+Parking frees the memory of the **child processes**, not iTerm2's own footprint.
+The per-session model that iTerm2 keeps resident (scrollback, the
+restorable-state copy of scrollback, and Instant Replay buffers) is retained by
+design so tabs revive instantly. See
+[`issues/memory-management.md`](issues/memory-management.md) for a detailed
+breakdown and mitigation options.
+
+### Implementation
+
+- `sources/iTermTabParkingController.m` — the idle timer, eligibility checks, the
+  browser/tmux exclusion, and the Claude graceful-park path.
+- `sources/PTYSession.m` — `-park` (SIGHUPs the shell process group) and
+  `-forceKillRemainingProcesses` (walks and SIGKILLs the process tree).
+- `sources/PseudoTerminal.m` — `tabView:didSelectTabViewItem:` triggers revive
+  via `replaceTerminatedShellWithNewInstance`.
 
 ---
 
