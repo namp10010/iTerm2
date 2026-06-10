@@ -12854,6 +12854,7 @@ typedef NS_ENUM(NSUInteger, iTermBroadcastCommand) {
     iTermTabGroup *group = groupIdentifier;
     group.name = newName.length > 0 ? newName : nil;
     [self updateTabBar];
+    [[self window] makeFirstResponder:[[self currentSession] mainResponder]];
 }
 
 - (IBAction)toggleCollapseGroup:(id)sender {
